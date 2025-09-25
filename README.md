@@ -1,10 +1,6 @@
 # 🔧 Git Multi-Profile Configuration Manager
 
-![License](h2. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/solarekm/git-multi-profile.git
-   cd git-multi-profile
-   ```//img.shields.io/badge/license-MIT-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)
 ![Git](https://img.shields.io/badge/Git-2.25%2B-red.svg)
 ![Shell](https://img.shields.io/badge/Shell-Bash%20%7C%20Zsh-green.svg)

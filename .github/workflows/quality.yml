@@ -27,7 +27,7 @@ jobs:
 
     - name: 🔧 Install shfmt
       run: |
-        curl -L https://github.com/mvdan/sh/releases/latest/download/shfmt_v3.7.0_linux_amd64 -o shfmt
+        curl -L "https://github.com/mvdan/sh/releases/download/v3.8.0/shfmt_v3.8.0_linux_amd64" -o shfmt
         chmod +x shfmt
         sudo mv shfmt /usr/local/bin/
 
@@ -479,6 +479,23 @@ jobs:
             fi
           fi
         done
+        
+        # Run our test suites
+        echo "🧪 Running local test suite..."
+        if ./tests/run-local-tests.sh; then
+          echo "✅ Local tests passed"
+        else
+          echo "❌ Local tests failed"
+          exit 1
+        fi
+        
+        echo "🧪 Running unit tests..."
+        if ./tests/unit-tests.sh; then
+          echo "✅ Unit tests passed"
+        else
+          echo "❌ Unit tests failed"
+          exit 1
+        fi
 
   # ============================================================================
   # Report Generation
