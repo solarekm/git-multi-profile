@@ -90,7 +90,8 @@ generate_key() {
         fi
         
         # Backup existing key
-        local backup_path="${key_path}.backup.$(date +%Y%m%d_%H%M%S)"
+        local backup_path
+        backup_path="${key_path}.backup.$(date +%Y%m%d_%H%M%S)"
         mv "$key_path" "$backup_path"
         mv "${key_path}.pub" "${backup_path}.pub" 2>/dev/null || true
         print_info "Existing key backed up to: $backup_path"
@@ -228,9 +229,12 @@ list_keys() {
     for key_file in ~/.ssh/id_*; do
         if [[ -f "$key_file" && ! "$key_file" =~ \.pub$ ]]; then
             keys_found=true
-            local key_name=$(basename "$key_file")
-            local key_type=$(ssh-keygen -l -f "$key_file" 2>/dev/null | awk '{print $4}' | tr -d '()' || echo "unknown")
-            local key_size=$(ssh-keygen -l -f "$key_file" 2>/dev/null | awk '{print $1}' || echo "unknown")
+            local key_name
+            key_name=$(basename "$key_file")
+            local key_type
+            key_type=$(ssh-keygen -l -f "$key_file" 2>/dev/null | awk '{print $4}' | tr -d '()' || echo "unknown")
+            local key_size
+            key_size=$(ssh-keygen -l -f "$key_file" 2>/dev/null | awk '{print $1}' || echo "unknown")
             
             echo -e "  ${CYAN}$key_name${NC}"
             echo -e "    Type: $key_type"
@@ -246,7 +250,8 @@ list_keys() {
             
             # Show public key fingerprint if available
             if [[ -f "${key_file}.pub" ]]; then
-                local fingerprint=$(ssh-keygen -l -f "${key_file}.pub" 2>/dev/null | awk '{print $2}' || echo "unknown")
+                local fingerprint
+                fingerprint=$(ssh-keygen -l -f "${key_file}.pub" 2>/dev/null | awk '{print $2}' || echo "unknown")
                 echo -e "    Fingerprint: $fingerprint"
             fi
             echo ""
@@ -264,14 +269,14 @@ interactive_generate() {
     echo ""
     
     # Get profile name
-    read -p "Enter profile name (e.g., work, personal, client): " profile_name
+    read -r -p "Enter profile name (e.g., work, personal, client): " profile_name
     if [[ -z "$profile_name" ]]; then
         print_error "Profile name cannot be empty"
         exit 1
     fi
     
     # Get email
-    read -p "Enter email address for this key: " email
+    read -r -p "Enter email address for this key: " email
     if [[ -z "$email" ]]; then
         print_error "Email address cannot be empty"
         exit 1
@@ -284,7 +289,7 @@ interactive_generate() {
     echo "2) Ed25519 (modern, faster)"
     echo "3) ECDSA (corporate environments)"
     echo ""
-    read -p "Choose key type (1-3) [1]: " key_choice
+    read -r -p "Choose key type (1-3) [1]: " key_choice
     
     case "${key_choice:-1}" in
         1) key_type="rsa"; key_size="4096" ;;
@@ -299,10 +304,10 @@ interactive_generate() {
     echo
     local passphrase=""
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        read -s -p "Enter passphrase (empty for no passphrase): " passphrase
+        read -r -s -p "Enter passphrase (empty for no passphrase): " passphrase
         echo
         if [[ -n "$passphrase" ]]; then
-            read -s -p "Confirm passphrase: " passphrase_confirm
+            read -r -s -p "Confirm passphrase: " passphrase_confirm
             echo
             if [[ "$passphrase" != "$passphrase_confirm" ]]; then
                 print_error "Passphrases don't match"

@@ -115,8 +115,8 @@ configure_global() {
     echo "This will be your default identity when no profile matches."
     echo ""
     
-    read -p "Enter your default name: " DEFAULT_NAME
-    read -p "Enter your default email: " DEFAULT_EMAIL
+    read -r -p "Enter your default name: " DEFAULT_NAME
+    read -r -p "Enter your default email: " DEFAULT_EMAIL
     
     # Copy and customize global config
     cp "$PROJECT_DIR/configs/profiles/global-template" ~/.gitconfig.tmp
@@ -142,7 +142,7 @@ generate_ssh_key() {
     echo "Select SSH key type:"
     echo "1) Ed25519 (recommended - modern, secure, fast)"
     echo "2) RSA 4096 (traditional, widely compatible)"
-    read -p "Choose key type (1-2) [1]: " KEY_CHOICE
+    read -r -p "Choose key type (1-2) [1]: " KEY_CHOICE
     
     case "${KEY_CHOICE:-1}" in
         1)
@@ -176,10 +176,10 @@ generate_ssh_key() {
     if [[ $REPLY =~ ^[Nn]$ ]]; then
         PASSPHRASE=""
     else
-        read -s -p "Enter passphrase (leave empty for no passphrase): " PASSPHRASE
+        read -r -s -p "Enter passphrase (leave empty for no passphrase): " PASSPHRASE
         echo
         if [[ -n "$PASSPHRASE" ]]; then
-            read -s -p "Confirm passphrase: " PASSPHRASE_CONFIRM
+            read -r -s -p "Confirm passphrase: " PASSPHRASE_CONFIRM
             echo
             if [[ "$PASSPHRASE" != "$PASSPHRASE_CONFIRM" ]]; then
                 print_error "Passphrases don't match, using no passphrase"
@@ -231,9 +231,9 @@ setup_profile() {
     
     echo -e "${WHITE}$PROFILE_TYPE Profile Configuration:${NC}"
     
-    read -p "Enter name for $PROFILE_TYPE profile: " PROFILE_NAME
-    read -p "Enter email for $PROFILE_TYPE profile: " PROFILE_EMAIL
-    read -p "Enter directory path for $PROFILE_TYPE repositories (e.g., ~/repositories/$PROFILE_TYPE): " PROFILE_DIR
+    read -r -p "Enter name for $PROFILE_TYPE profile: " PROFILE_NAME
+    read -r -p "Enter email for $PROFILE_TYPE profile: " PROFILE_EMAIL
+    read -r -p "Enter directory path for $PROFILE_TYPE repositories (e.g., ~/repositories/$PROFILE_TYPE): " PROFILE_DIR
     
     # Expand tilde
     PROFILE_DIR="${PROFILE_DIR/#\~/$HOME}"
@@ -290,7 +290,8 @@ setup_profile() {
 clean_unused_entries() {
     print_step "Cleaning unused entries from .gitconfig..."
     
-    local BACKUP_FILE="$HOME/.gitconfig.backup.$(date +%Y%m%d_%H%M%S)"
+    local BACKUP_FILE
+    BACKUP_FILE="$HOME/.gitconfig.backup.$(date +%Y%m%d_%H%M%S)"
     cp ~/.gitconfig "$BACKUP_FILE"
     print_info "Backup created: $BACKUP_FILE"
     
@@ -305,7 +306,18 @@ clean_unused_entries() {
             if [[ ! -d "$expanded_dir_path" ]]; then
                 print_warning "Removing entry for non-existent directory: $dir_path"
                 # Escape special characters for sed
-                escaped_line=$(echo "$line" | sed 's/[[\.*^$()+?{|]/\\&/g')
+                escaped_line=${line//[/\\[}
+                escaped_line=${escaped_line//]/\\]}
+                escaped_line=${escaped_line//./\\.}
+                escaped_line=${escaped_line//*/\\*}
+                escaped_line=${escaped_line//^/\\^}
+                escaped_line=${escaped_line//$/\\$}
+                escaped_line=${escaped_line//(/\\(}
+                escaped_line=${escaped_line//)/\\)}
+                escaped_line=${escaped_line//+/\\+}
+                escaped_line=${escaped_line//\?/\\?}
+                escaped_line=${escaped_line//{/\\{}
+                escaped_line=${escaped_line//|/\\|}
                 # Remove the includeIf line and the following path line
                 sed -i "/^$(echo "$escaped_line" | sed 's/\]/\\]/g')/,+1d" ~/.gitconfig
                 ((ENTRIES_REMOVED++))
@@ -385,7 +397,7 @@ main_menu() {
         echo "6) Exit"
         echo ""
         
-        read -p "Choose an option (1-6): " choice
+        read -r -p "Choose an option (1-6): " choice
         
         case $choice in
             1)

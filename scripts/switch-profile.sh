@@ -58,8 +58,10 @@ list_profiles() {
             profile_name=$(basename "$profile")
             
             # Extract name and email from profile
-            local name=$(grep "name =" "$profile" 2>/dev/null | head -1 | cut -d'=' -f2 | xargs || echo "Not set")
-            local email=$(grep "email =" "$profile" 2>/dev/null | head -1 | cut -d'=' -f2 | xargs || echo "Not set")
+            local name
+            name=$(grep "name =" "$profile" 2>/dev/null | head -1 | cut -d'=' -f2 | xargs || echo "Not set")
+            local email
+            email=$(grep "email =" "$profile" 2>/dev/null | head -1 | cut -d'=' -f2 | xargs || echo "Not set")
             
             echo -e "  ${CYAN}$profile_name${NC}"
             echo -e "    Name:  $name"
@@ -79,10 +81,14 @@ list_profiles() {
 show_current_profile() {
     echo -e "${WHITE}Current Git Configuration:${NC}"
     
-    local current_name=$(git config user.name 2>/dev/null || echo "Not set")
-    local current_email=$(git config user.email 2>/dev/null || echo "Not set")
-    local current_ssh=$(git config core.sshCommand 2>/dev/null || echo "Default")
-    local current_signing=$(git config commit.gpgsign 2>/dev/null || echo "false")
+    local current_name
+    current_name=$(git config user.name 2>/dev/null || echo "Not set")
+    local current_email
+    current_email=$(git config user.email 2>/dev/null || echo "Not set")
+    local current_ssh
+    current_ssh=$(git config core.sshCommand 2>/dev/null || echo "Default")
+    local current_signing
+    current_signing=$(git config commit.gpgsign 2>/dev/null || echo "false")
     
     echo -e "  ${CYAN}Name:${NC} $current_name"
     echo -e "  ${CYAN}Email:${NC} $current_email"
@@ -91,15 +97,20 @@ show_current_profile() {
     echo ""
     
     # Try to determine which profile is active based on directory
-    local current_dir=$(pwd)
+    local current_dir
+    current_dir=$(pwd)
     if [[ -f ~/.gitconfig ]] && grep -q "includeIf" ~/.gitconfig; then
         echo -e "${WHITE}Profile Detection (based on directory):${NC}"
         while IFS= read -r line; do
             if [[ "$line" =~ \[includeIf.*gitdir: ]]; then
-                local dir_pattern=$(echo "$line" | sed 's/.*gitdir://;s/\].*//')
-                local profile_line=$(grep -A1 "$line" ~/.gitconfig | tail -1)
-                local profile_path=$(echo "$profile_line" | sed 's/.*path = //')
-                local profile_name=$(basename "$profile_path")
+                local dir_pattern
+                dir_pattern=$(echo "$line" | sed 's/.*gitdir://;s/\].*//')
+                local profile_line
+                profile_line=$(grep -A1 "$line" ~/.gitconfig | tail -1)
+                local profile_path
+                profile_path=${profile_line#*path = }
+                local profile_name
+                profile_name=$(basename "$profile_path")
                 
                 # Expand tilde in directory pattern
                 dir_pattern="${dir_pattern/#\~/$HOME}"
@@ -129,11 +140,16 @@ apply_profile() {
     echo -e "${WHITE}Applying profile '$profile_name' globally...${NC}"
     
     # Extract configuration from profile
-    local name=$(grep "name =" "$profile_path" | head -1 | cut -d'=' -f2 | xargs)
-    local email=$(grep "email =" "$profile_path" | head -1 | cut -d'=' -f2 | xargs)
-    local ssh_command=$(grep "sshCommand =" "$profile_path" | head -1 | cut -d'=' -f2 | xargs)
-    local signing_key=$(grep "signingkey =" "$profile_path" | head -1 | cut -d'=' -f2 | xargs)
-    local gpg_sign=$(grep "gpgsign =" "$profile_path" | head -1 | cut -d'=' -f2 | xargs)
+    local name
+    name=$(grep "name =" "$profile_path" | head -1 | cut -d'=' -f2 | xargs)
+    local email
+    email=$(grep "email =" "$profile_path" | head -1 | cut -d'=' -f2 | xargs)
+    local ssh_command
+    ssh_command=$(grep "sshCommand =" "$profile_path" | head -1 | cut -d'=' -f2 | xargs)
+    local signing_key
+    signing_key=$(grep "signingkey =" "$profile_path" | head -1 | cut -d'=' -f2 | xargs)
+    local gpg_sign
+    gpg_sign=$(grep "gpgsign =" "$profile_path" | head -1 | cut -d'=' -f2 | xargs)
     
     # Apply configuration globally
     if [[ -n "$name" ]]; then
@@ -186,7 +202,8 @@ interactive_select() {
     
     echo -e "${WHITE}Select a profile to apply globally:${NC}"
     
-    profiles=($(ls ~/.config/git/profiles/ 2>/dev/null))
+    local profiles
+    mapfile -t profiles < <(ls ~/.config/git/profiles/ 2>/dev/null)
     if [[ ${#profiles[@]} -eq 0 ]]; then
         print_error "No profiles found"
         exit 1
@@ -199,7 +216,7 @@ interactive_select() {
     echo "$((${#profiles[@]}+2))) Cancel"
     
     echo ""
-    read -p "Choose an option: " choice
+    read -r -p "Choose an option: " choice
     
     if [[ "$choice" -ge 1 && "$choice" -le "${#profiles[@]}" ]]; then
         selected_profile="${profiles[$((choice-1))]}"
@@ -218,7 +235,8 @@ interactive_select() {
 test_profile() {
     echo -e "${WHITE}Testing profile in current directory...${NC}"
     
-    local current_dir=$(pwd)
+    local current_dir
+    current_dir=$(pwd)
     
     # Initialize a temporary git repo if not in one
     local temp_repo=false

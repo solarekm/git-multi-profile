@@ -245,18 +245,21 @@ jobs:
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
-
+    
     - name: 🧪 Secret Scanning
       run: |
         echo "🔍 Scanning for secrets..."
-        # Check for potential secrets in code
-        if grep -r -i "password\|secret\|key\|token" --include="*.sh" --include="*.md" scripts/ docs/ examples/ | grep -v "# Example\|template\|placeholder\|YOUR_"; then
-          echo "❌ Potential secrets found in code"
+        # Check for actual secrets (API keys, passwords, tokens) but exclude legitimate key references
+        if grep -r -E "(password|secret|token)\s*=\s*['\"][^'\"]{8,}['\"]" --include="*.sh" --include="*.md" scripts/ docs/ examples/ 2>/dev/null; then
+          echo "❌ Potential hardcoded secrets found"
+          exit 1
+        elif grep -r -E "(api[_-]?key|access[_-]?token|private[_-]?key)\s*=\s*['\"][^'\"]{20,}['\"]" --include="*.sh" --include="*.md" scripts/ docs/ examples/ 2>/dev/null; then
+          echo "❌ Potential API keys or tokens found"
           exit 1
         else
           echo "✅ No hardcoded secrets detected"
         fi
-
+    
     - name: 🧪 Hardcoded Paths Check
       run: |
         echo "🔍 Checking for hardcoded paths..."
