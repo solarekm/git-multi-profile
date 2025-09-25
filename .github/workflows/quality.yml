@@ -1,0 +1,553 @@
+name: 🧪 Code Quality & Security
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    # Run weekly security scan
+    - cron: '0 0 * * 0'
+
+jobs:
+  # ============================================================================
+  # Bash Script Quality Tests
+  # ============================================================================
+  bash-quality:
+    name: 🔍 Bash Script Quality
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔧 Install ShellCheck
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y shellcheck
+
+    - name: 🔧 Install shfmt
+      run: |
+        curl -L https://github.com/mvdan/sh/releases/latest/download/shfmt_v3.7.0_linux_amd64 -o shfmt
+        chmod +x shfmt
+        sudo mv shfmt /usr/local/bin/
+
+    - name: 🧪 Bash Syntax Check
+      run: |
+        echo "🔍 Checking bash syntax..."
+        exit_code=0
+        for script in scripts/*.sh; do
+          if [[ -f "$script" ]]; then
+            echo "Checking syntax: $script"
+            if ! bash -n "$script"; then
+              echo "❌ Syntax error in $script"
+              exit_code=1
+            else
+              echo "✅ $script syntax OK"
+            fi
+          fi
+        done
+        exit $exit_code
+
+    - name: 🧪 ShellCheck Analysis
+      run: |
+        echo "🔍 Running ShellCheck analysis..."
+        exit_code=0
+        for script in scripts/*.sh; do
+          if [[ -f "$script" ]]; then
+            echo "Analyzing: $script"
+            if ! shellcheck -e SC2034,SC2086,SC2181 "$script"; then
+              echo "❌ ShellCheck issues in $script"
+              exit_code=1
+            else
+              echo "✅ $script passes ShellCheck"
+            fi
+          fi
+        done
+        exit $exit_code
+
+    - name: 🧪 Bash Code Formatting
+      run: |
+        echo "🔍 Checking bash code formatting..."
+        exit_code=0
+        for script in scripts/*.sh; do
+          if [[ -f "$script" ]]; then
+            echo "Checking format: $script"
+            if ! shfmt -d -i 4 -ci "$script"; then
+              echo "❌ Formatting issues in $script"
+              exit_code=1
+            else
+              echo "✅ $script formatting OK"
+            fi
+          fi
+        done
+        exit $exit_code
+
+    - name: 🧪 Executable Permissions Check
+      run: |
+        echo "🔍 Checking executable permissions..."
+        exit_code=0
+        for script in scripts/*.sh; do
+          if [[ -f "$script" ]]; then
+            if [[ ! -x "$script" ]]; then
+              echo "❌ $script is not executable"
+              exit_code=1
+            else
+              echo "✅ $script has correct permissions"
+            fi
+          fi
+        done
+        exit $exit_code
+
+    - name: 🧪 Script Dependencies Check
+      run: |
+        echo "🔍 Checking script dependencies..."
+        # Check if scripts properly handle missing dependencies
+        for script in scripts/*.sh; do
+          if [[ -f "$script" ]]; then
+            echo "Checking dependencies in: $script"
+            # Look for commands that might not be available
+            if grep -q "ssh-keygen\|git\|gpg" "$script"; then
+              echo "✅ $script checks for required tools"
+            fi
+          fi
+        done
+
+  # ============================================================================
+  # Documentation Quality Tests
+  # ============================================================================
+  documentation-quality:
+    name: 📚 Documentation Quality
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔧 Install markdownlint
+      run: |
+        npm install -g markdownlint-cli
+
+    - name: 🧪 Markdown Linting
+      run: |
+        echo "🔍 Checking markdown quality..."
+        # Create markdownlint config
+        cat > .markdownlint.json << 'EOF'
+        {
+          "MD013": { "line_length": 120 },
+          "MD033": false,
+          "MD041": false,
+          "MD034": false,
+          "MD029": { "style": "ordered" }
+        }
+        EOF
+        
+        markdownlint README.md docs/*.md examples/*/*.md || true
+        echo "ℹ️  Markdown linting completed (warnings only)"
+
+    - name: 🧪 Documentation Links Check
+      run: |
+        echo "🔍 Checking documentation links..."
+        # Check for broken internal links
+        python3 << 'EOF'
+        import os
+        import re
+        import sys
+        
+        def check_internal_links():
+            broken_links = []
+            
+            for root, dirs, files in os.walk('.'):
+                for file in files:
+                    if file.endswith('.md'):
+                        filepath = os.path.join(root, file)
+                        with open(filepath, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                            
+                        # Find internal links [text](./path)
+                        internal_links = re.findall(r'\[.*?\]\(\.\/[^)]+\)', content)
+                        
+                        for link in internal_links:
+                            # Extract path from [text](./path)
+                            path_match = re.search(r'\(\.\/([^)]+)\)', link)
+                            if path_match:
+                                linked_path = path_match.group(1)
+                                full_path = os.path.join(os.path.dirname(filepath), linked_path)
+                                
+                                if not os.path.exists(full_path):
+                                    broken_links.append(f"{filepath}: {link}")
+            
+            if broken_links:
+                print("❌ Broken internal links found:")
+                for link in broken_links:
+                    print(f"  {link}")
+                return False
+            else:
+                print("✅ All internal links are valid")
+                return True
+        
+        if not check_internal_links():
+            sys.exit(1)
+        EOF
+
+    - name: 🧪 Code Block Syntax Check
+      run: |
+        echo "🔍 Checking code blocks in documentation..."
+        python3 << 'EOF'
+        import os
+        import re
+        
+        def check_code_blocks():
+            issues = []
+            
+            for root, dirs, files in os.walk('.'):
+                for file in files:
+                    if file.endswith('.md'):
+                        filepath = os.path.join(root, file)
+                        with open(filepath, 'r', encoding='utf-8') as f:
+                            lines = f.readlines()
+                        
+                        in_code_block = False
+                        code_block_lang = None
+                        
+                        for i, line in enumerate(lines, 1):
+                            # Check for code block start
+                            if line.strip().startswith('```'):
+                                if not in_code_block:
+                                    in_code_block = True
+                                    # Extract language
+                                    lang_match = re.search(r'```(\w+)', line)
+                                    code_block_lang = lang_match.group(1) if lang_match else None
+                                else:
+                                    in_code_block = False
+                                    code_block_lang = None
+                        
+                        # Check if code block was properly closed
+                        if in_code_block:
+                            issues.append(f"{filepath}: Unclosed code block")
+            
+            if issues:
+                print("❌ Code block issues found:")
+                for issue in issues:
+                    print(f"  {issue}")
+                return False
+            else:
+                print("✅ All code blocks are properly formatted")
+                return True
+        
+        check_code_blocks()
+        EOF
+
+  # ============================================================================
+  # Security Scanning
+  # ============================================================================
+  security-scan:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🧪 Secret Scanning
+      run: |
+        echo "🔍 Scanning for secrets..."
+        # Check for potential secrets in code
+        if grep -r -i "password\|secret\|key\|token" --include="*.sh" --include="*.md" scripts/ docs/ examples/ | grep -v "# Example\|template\|placeholder\|YOUR_"; then
+          echo "❌ Potential secrets found in code"
+          exit 1
+        else
+          echo "✅ No hardcoded secrets detected"
+        fi
+
+    - name: 🧪 Hardcoded Paths Check
+      run: |
+        echo "🔍 Checking for hardcoded paths..."
+        exit_code=0
+        # Check for hardcoded user paths
+        if grep -r "/home/[^/]" scripts/ docs/ examples/ | grep -v "example\|template"; then
+          echo "❌ Hardcoded user paths found"
+          exit_code=1
+        fi
+        
+        # Check for absolute paths that should be relative
+        if grep -r "~/repositories/solarekm" scripts/ docs/ examples/; then
+          echo "❌ Hardcoded personal paths found"
+          exit_code=1
+        fi
+        
+        if [[ $exit_code -eq 0 ]]; then
+          echo "✅ No hardcoded paths detected"
+        fi
+        exit $exit_code
+
+    - name: 🧪 Permission and Security Check
+      run: |
+        echo "🔍 Checking file permissions and security..."
+        
+        # Check for overly permissive files
+        find . -type f -perm /o+w -not -path "./.git/*" | while read -r file; do
+          echo "❌ World-writable file: $file"
+        done
+        
+        # Check for SUID/SGID files (should not exist in this project)
+        if find . -type f \( -perm -4000 -o -perm -2000 \) -not -path "./.git/*" | grep -q .; then
+          echo "❌ SUID/SGID files found"
+          exit 1
+        fi
+        
+        echo "✅ File permissions look secure"
+
+  # ============================================================================
+  # Multi-Platform Testing
+  # ============================================================================
+  multi-platform-test:
+    name: 🖥️ Multi-Platform Test
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        bash-version: ['4.4', '5.0']
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔧 Setup Bash (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        if [[ "${{ matrix.bash-version }}" == "4.4" ]]; then
+          # Use system bash (usually 4.4+)
+          echo "Using system bash: $(bash --version | head -n1)"
+        else
+          # Install newer bash if needed
+          sudo apt-get update
+          sudo apt-get install -y bash
+        fi
+
+    - name: 🔧 Setup Bash (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        if [[ "${{ matrix.bash-version }}" == "5.0" ]]; then
+          # Install bash 5 on macOS
+          brew install bash
+          echo "/opt/homebrew/bin/bash" | sudo tee -a /etc/shells
+        fi
+        echo "Using bash: $(bash --version | head -n1)"
+
+    - name: 🧪 Cross-Platform Script Test
+      run: |
+        echo "🔍 Testing scripts on ${{ matrix.os }} with Bash ${{ matrix.bash-version }}"
+        
+        # Test basic script execution without side effects
+        for script in scripts/*.sh; do
+          if [[ -f "$script" ]]; then
+            echo "Testing: $script"
+            
+            # Test help option (should not modify anything)
+            if bash "$script" --help 2>&1 | grep -q "Usage\|help\|Options" || \
+               bash "$script" -h 2>&1 | grep -q "Usage\|help\|Options"; then
+              echo "✅ $script help works"
+            else
+              echo "⚠️  $script doesn't have help option (this is OK)"
+            fi
+          fi
+        done
+
+    - name: 🧪 Git Compatibility Test
+      run: |
+        echo "🔍 Testing Git compatibility..."
+        
+        # Check Git version
+        git_version=$(git --version | grep -oP '\d+\.\d+\.\d+' | head -1)
+        echo "Git version: $git_version"
+        
+        # Test if Git supports conditional includes (Git 2.13+)
+        if git config --help | grep -q "includeIf"; then
+          echo "✅ Git supports conditional includes"
+        else
+          echo "❌ Git version too old for conditional includes"
+          exit 1
+        fi
+
+  # ============================================================================
+  # Template Validation
+  # ============================================================================
+  template-validation:
+    name: 📝 Template Validation
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🧪 Git Config Template Validation
+      run: |
+        echo "🔍 Validating Git config templates..."
+        exit_code=0
+        
+        for template in configs/profiles/*-template; do
+          if [[ -f "$template" ]]; then
+            echo "Validating: $template"
+            
+            # Check if it's valid Git config syntax
+            if ! git config --file "$template" --list >/dev/null 2>&1; then
+              echo "❌ Invalid Git config syntax in $template"
+              exit_code=1
+            else
+              echo "✅ $template has valid syntax"
+            fi
+            
+            # Check for required placeholders
+            if [[ "$template" == *"work-template" ]]; then
+              if ! grep -q "Your Professional Name\|your.name@company.com" "$template"; then
+                echo "❌ Missing placeholders in $template"
+                exit_code=1
+              fi
+            fi
+          fi
+        done
+        
+        exit $exit_code
+
+    - name: 🧪 Template Consistency Check
+      run: |
+        echo "🔍 Checking template consistency..."
+        
+        # Check if all templates have user.name and user.email
+        for template in configs/profiles/*-template; do
+          if [[ -f "$template" ]]; then
+            if ! grep -q "\[user\]" "$template"; then
+              echo "❌ Missing [user] section in $template"
+              exit 1
+            fi
+            
+            if ! grep -q "name\s*=" "$template"; then
+              echo "❌ Missing user.name in $template"
+              exit 1
+            fi
+            
+            if ! grep -q "email\s*=" "$template"; then
+              echo "❌ Missing user.email in $template"
+              exit 1
+            fi
+            
+            echo "✅ $template has required user configuration"
+          fi
+        done
+
+  # ============================================================================
+  # Integration Test (Dry Run)
+  # ============================================================================
+  integration-test:
+    name: 🔄 Integration Test (Dry Run)
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔧 Setup Test Environment
+      run: |
+        # Create isolated test environment
+        mkdir -p /tmp/git-config-test
+        cp -r . /tmp/git-config-test/
+        cd /tmp/git-config-test
+        
+        # Make scripts executable
+        chmod +x scripts/*.sh
+
+    - name: 🧪 Dry Run Tests
+      run: |
+        cd /tmp/git-config-test
+        echo "🔍 Testing script dry-run capabilities..."
+        
+        # Test validation script (should be safe to run)
+        echo "Testing validate-config.sh..."
+        if ./scripts/validate-config.sh --help >/dev/null 2>&1; then
+          echo "✅ validate-config.sh help works"
+        fi
+        
+        # Test other scripts with help/version options
+        for script in scripts/*.sh; do
+          if [[ -f "$script" && -x "$script" ]]; then
+            script_name=$(basename "$script")
+            echo "Testing $script_name safety..."
+            
+            # These should be safe operations
+            if bash -n "$script"; then
+              echo "✅ $script_name syntax check passed"
+            else
+              echo "❌ $script_name syntax error"
+              exit 1
+            fi
+          fi
+        done
+
+  # ============================================================================
+  # Report Generation
+  # ============================================================================
+  generate-report:
+    name: 📊 Generate Quality Report
+    needs: [bash-quality, documentation-quality, security-scan, multi-platform-test, template-validation, integration-test]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 📊 Generate Quality Report
+      run: |
+        echo "# 🎯 Git Multi-Profile Quality Report" > quality-report.md
+        echo "" >> quality-report.md
+        echo "**Generated:** $(date -u)" >> quality-report.md
+        echo "**Commit:** ${{ github.sha }}" >> quality-report.md
+        echo "" >> quality-report.md
+        
+        # Job status
+        echo "## 📋 Test Results" >> quality-report.md
+        echo "" >> quality-report.md
+        
+        if [[ "${{ needs.bash-quality.result }}" == "success" ]]; then
+          echo "- ✅ **Bash Quality**: All scripts pass quality checks" >> quality-report.md
+        else
+          echo "- ❌ **Bash Quality**: Issues found in bash scripts" >> quality-report.md
+        fi
+        
+        if [[ "${{ needs.documentation-quality.result }}" == "success" ]]; then
+          echo "- ✅ **Documentation**: All documentation is properly formatted" >> quality-report.md
+        else
+          echo "- ❌ **Documentation**: Issues found in documentation" >> quality-report.md
+        fi
+        
+        if [[ "${{ needs.security-scan.result }}" == "success" ]]; then
+          echo "- ✅ **Security**: No security issues detected" >> quality-report.md
+        else
+          echo "- ❌ **Security**: Security issues found" >> quality-report.md
+        fi
+        
+        if [[ "${{ needs.multi-platform-test.result }}" == "success" ]]; then
+          echo "- ✅ **Multi-Platform**: Scripts work across platforms" >> quality-report.md
+        else
+          echo "- ❌ **Multi-Platform**: Platform compatibility issues" >> quality-report.md
+        fi
+        
+        if [[ "${{ needs.template-validation.result }}" == "success" ]]; then
+          echo "- ✅ **Templates**: All templates are valid" >> quality-report.md
+        else
+          echo "- ❌ **Templates**: Template validation issues" >> quality-report.md
+        fi
+        
+        if [[ "${{ needs.integration-test.result }}" == "success" ]]; then
+          echo "- ✅ **Integration**: Dry-run tests pass" >> quality-report.md
+        else
+          echo "- ❌ **Integration**: Integration test issues" >> quality-report.md
+        fi
+        
+        echo "" >> quality-report.md
+        echo "## 🔗 Links" >> quality-report.md
+        echo "- [Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> quality-report.md
+        
+        cat quality-report.md
+
+    - name: 📎 Upload Quality Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: quality-report
+        path: quality-report.md

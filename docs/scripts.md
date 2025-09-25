@@ -1,0 +1,355 @@
+# Git Multi-Profile Scripts Documentation
+
+This document provides comprehensive documentation for all scripts in the Git multi-profile configuration system.
+
+## Scripts Overview
+
+All scripts are located in the `scripts/` directory:
+
+```
+scripts/
+├── setup-profiles.sh      # Interactive profile setup wizard
+├── switch-profile.sh      # Manual profile switching utility
+├── validate-config.sh     # Configuration validation tool
+└── generate-ssh-keys.sh   # Standalone SSH key generator
+```
+
+## Script Details
+
+### 1. `setup-profiles.sh` - Main Setup Wizard
+
+**Purpose:** Interactive wizard for complete Git multi-profile setup and management.
+
+**Features:**
+- Prerequisites checking (Git version, SSH client)
+- Global Git configuration setup
+- Profile creation and management
+- SSH key generation with type selection
+- Conditional includes management
+- Configuration cleanup
+- Backup creation
+
+**Usage:**
+```bash
+./scripts/setup-profiles.sh              # Interactive mode
+./scripts/setup-profiles.sh -h           # Show help
+```
+
+**Menu Options:**
+1. **Set up work profile** - Create/update work profile
+2. **Set up personal profile** - Create/update personal profile  
+3. **Set up client profile** - Create/update client profile
+4. **Clean unused entries** - Remove obsolete .gitconfig entries
+5. **Test current configuration** - Validate profile switching
+6. **Exit** - Complete setup
+
+**Workflow:**
+1. Check prerequisites (Git 2.13+, SSH client)
+2. Backup existing `.gitconfig`
+3. Configure/verify global Git settings
+4. Present interactive menu
+5. Process user selections
+6. Create profiles and SSH keys as needed
+7. Update `.gitconfig` with conditional includes
+
+**SSH Key Features:**
+- **Key Type Selection:** Ed25519 (recommended) or RSA 4096
+- **Passphrase Option:** Optional passphrase protection
+- **Automatic Integration:** SSH config added to profile automatically
+- **Duplicate Prevention:** Checks for existing keys
+- **Public Key Display:** Shows key for adding to Git hosting services
+
+**Profile Management:**
+- **Template-Based:** Uses profile templates from `configs/profiles/`
+- **Variable Substitution:** Replaces placeholders with user input
+- **Duplicate Prevention:** Checks for existing conditional includes
+- **Path Validation:** Creates directories if they don't exist
+- **Dynamic Examples:** Shows appropriate directory examples per profile type
+
+**Configuration Backup:**
+- Automatic backup before any changes
+- Timestamped backup files: `.gitconfig.backup.YYYYMMDD_HHMMSS`
+- Restore instructions provided if needed
+
+### 2. `validate-config.sh` - Configuration Validator
+
+**Purpose:** Comprehensive validation of Git multi-profile configuration.
+
+**Features:**
+- Git installation and version checking
+- Global configuration validation
+- Conditional includes verification
+- Profile configuration analysis
+- SSH key existence checking
+- SSH connectivity testing
+- Summary report with success rate
+
+**Usage:**
+```bash
+./scripts/validate-config.sh             # Full validation
+./scripts/validate-config.sh -q          # Quick mode (skip SSH connectivity)
+./scripts/validate-config.sh -h          # Show help
+```
+
+**Validation Categories:**
+
+#### System Checks
+- ✅ Git installation and version (requires 2.13+ for conditional includes)
+- ✅ SSH client availability
+- ✅ Directory permissions
+
+#### Global Configuration
+- ✅ `.gitconfig` file exists and is readable
+- ✅ Global `user.name` and `user.email` configured
+- ✅ Basic Git settings validation
+
+#### Conditional Includes
+- ✅ Conditional include syntax validation
+- ✅ Directory existence checking (with tilde expansion)
+- ✅ Profile file existence verification
+- ✅ Path mapping correctness
+
+#### Profile Analysis
+- ✅ Required fields: `user.name`, `user.email`
+- ✅ Email format validation (regex pattern matching)
+- ✅ SSH configuration detection and validation
+- ✅ SSH key file existence (private and public)
+- ℹ️ GPG configuration detection (only if actually enabled)
+- ℹ️ SSH configuration optional (if user skipped generation)
+
+#### SSH Connectivity (Optional)
+- ⚠️ GitHub, GitLab, Bitbucket connectivity tests
+- ⚠️ Authentication status checking
+- ℹ️ Service reachability testing
+
+#### Profile Switching Tests
+- ✅ Real-world profile activation in configured directories
+- ✅ Identity verification per directory
+- ✅ SSH configuration application
+
+**Output Format:**
+- Color-coded results with emojis
+- Detailed success/failure messages
+- Summary statistics with success percentage
+- Actionable recommendations
+
+**Success Rate Interpretation:**
+- 90%+ → ✅ Configuration looks excellent!
+- 70-89% → ⚠️ Configuration is mostly good, but some issues need attention
+- <70% → ❌ Configuration needs significant improvements
+
+### 3. `switch-profile.sh` - Manual Profile Switching
+
+**Purpose:** Manual profile switching utility for temporary profile changes.
+
+**Features:**
+- Interactive profile selection
+- Current profile detection
+- Temporary profile override
+- Profile restoration
+- Status display
+
+**Usage:**
+```bash
+./scripts/switch-profile.sh              # Interactive mode
+./scripts/switch-profile.sh work         # Switch to work profile
+./scripts/switch-profile.sh personal     # Switch to personal profile
+./scripts/switch-profile.sh --status     # Show current profile
+./scripts/switch-profile.sh --restore    # Restore directory-based switching
+```
+
+**How It Works:**
+1. Temporarily overrides Git configuration
+2. Sets global user identity to selected profile
+3. Maintains original conditional includes for future use
+4. Provides restoration mechanism
+
+**Use Cases:**
+- Quick profile switching for one-off commits
+- Testing profile configurations
+- Working outside configured directories
+- Emergency profile override
+
+**Limitations:**
+- Temporary changes only (not persistent)
+- Doesn't affect SSH configuration
+- Global override affects all repositories until restored
+
+### 4. `generate-ssh-keys.sh` - SSH Key Generator
+
+**Purpose:** Standalone SSH key generation utility with advanced options.
+
+**Features:**
+- Multiple key type support (Ed25519, RSA)
+- Batch key generation
+- Profile-specific key naming
+- Key strength configuration
+- Passphrase management
+
+**Usage:**
+```bash
+./scripts/generate-ssh-keys.sh           # Interactive mode
+./scripts/generate-ssh-keys.sh ed25519 work user@company.com
+./scripts/generate-ssh-keys.sh rsa personal user@personal.com
+./scripts/generate-ssh-keys.sh --list    # List existing keys
+```
+
+**Key Types:**
+- **Ed25519** (recommended): Modern, fast, secure
+- **RSA 4096**: Traditional, widely compatible
+
+**Features:**
+- **Profile Integration:** Automatically names keys by profile
+- **Passphrase Options:** Interactive passphrase setting
+- **Overwrite Protection:** Confirms before replacing existing keys
+- **Public Key Display:** Shows generated public key
+- **Profile Update:** Can update Git profile with new SSH configuration
+
+**Key Naming Convention:**
+- Ed25519: `~/.ssh/id_ed25519_{profile}`
+- RSA: `~/.ssh/id_rsa_{profile}`
+
+## Common Usage Patterns
+
+### Initial Setup Workflow
+
+1. **Clone repository:**
+   ```bash
+   git clone <repository-url> git-multi-profile
+   cd git-multi-profile
+   ```
+
+2. **Run setup wizard:**
+   ```bash
+   ./scripts/setup-profiles.sh
+   ```
+
+3. **Configure global settings** (first time only)
+
+4. **Create profiles** as needed:
+   - Work profile → Configure work identity and directory
+   - Personal profile → Configure personal identity and directory
+   - Client profiles → Configure per client needs
+
+5. **Generate SSH keys** when prompted
+
+6. **Validate configuration:**
+   ```bash
+   ./scripts/validate-config.sh
+   ```
+
+### Maintenance Workflow
+
+1. **Regular validation:**
+   ```bash
+   ./scripts/validate-config.sh -q
+   ```
+
+2. **Clean unused entries:**
+   ```bash
+   ./scripts/setup-profiles.sh  # Choose option 4
+   ```
+
+3. **Add new profiles** as needed
+
+4. **Update SSH keys** when they expire:
+   ```bash
+   ./scripts/generate-ssh-keys.sh
+   ```
+
+### Troubleshooting Workflow
+
+1. **Run validation:**
+   ```bash
+   ./scripts/validate-config.sh
+   ```
+
+2. **Check specific issues:**
+   - Profile switching problems → Test in configured directories
+   - SSH authentication failures → Verify keys with Git hosting services
+   - Configuration conflicts → Use cleanup function
+
+3. **Emergency profile switching:**
+   ```bash
+   ./scripts/switch-profile.sh
+   ```
+
+## Script Dependencies
+
+### System Requirements
+- **Bash 4.0+**: All scripts use bash-specific features
+- **Git 2.13+**: Required for conditional includes
+- **SSH client**: Required for SSH key operations
+- **Basic utilities**: sed, grep, cat, mkdir, etc.
+
+### File Dependencies
+- `configs/profiles/` - Template files
+- `~/.gitconfig` - Global Git configuration
+- `~/.config/git/profiles/` - Profile configurations
+- `~/.ssh/` - SSH key storage
+
+### Cross-Script Integration
+- `setup-profiles.sh` calls functions from other scripts internally
+- `validate-config.sh` can be called independently or from setup
+- `generate-ssh-keys.sh` can be used standalone or integrated
+- All scripts respect the same configuration structure
+
+## Error Handling
+
+### Common Error Scenarios
+
+1. **Missing Git installation**
+   - Detection: Prerequisites check
+   - Resolution: Install Git 2.13+
+
+2. **Insufficient permissions**
+   - Detection: File operation failures
+   - Resolution: Check directory permissions
+
+3. **Corrupted configuration**
+   - Detection: Validation failures
+   - Resolution: Restore from backup or reconfigure
+
+4. **SSH key conflicts**
+   - Detection: Existing key warnings
+   - Resolution: Backup or overwrite options provided
+
+### Backup and Recovery
+
+All scripts create backups before making changes:
+- `.gitconfig` backups: `~/.gitconfig.backup.{timestamp}`
+- Profile backups: Created during cleanup operations
+- SSH key backups: User prompted before overwrite
+
+Recovery procedures documented in script help output and error messages.
+
+## Advanced Configuration
+
+### Custom Profile Types
+
+To add new profile types:
+1. Create new template in `configs/profiles/{type}-template`
+2. Add case statement in `setup-profiles.sh` 
+3. Update menu options and help text
+4. Test with validation script
+
+### Integration with CI/CD
+
+Scripts can be used in automated environments:
+```bash
+# Non-interactive profile creation
+echo -e "1\nJohn Smith\njohn@company.com\n/workspace/work\ny\n1\n\n6" | ./scripts/setup-profiles.sh
+
+# Validation in CI pipeline
+./scripts/validate-config.sh -q && echo "Git configuration valid"
+```
+
+### Custom SSH Key Types
+
+To support additional key types:
+1. Update `generate-ssh-keys.sh` key type menu
+2. Add case statement for new type
+3. Update validation logic in `validate-config.sh`
+4. Test key generation and validation
+
+This documentation should be updated when scripts are modified or new features are added.

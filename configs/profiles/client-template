@@ -1,0 +1,47 @@
+# Client Profile Configuration Template
+# Copy and customize this file for each client
+# Place customized version at ~/.config/git/profiles/client-name
+
+[user]
+    name = Your Professional Name
+    email = your.name@client-domain.com
+    # Uncomment and set client-specific GPG signing key if required
+    # signingkey = CLIENT_SPECIFIC_GPG_KEY_ID
+
+[core]
+    # SSH configuration will be added automatically if SSH key is generated
+
+[commit]
+    # Enable GPG signing if client requires it
+    # gpgsign = true
+
+[alias]
+    # Client-specific aliases
+    client-log = log --author='your.name@client-domain.com' --since='1 week ago' --oneline
+    deliverable = log --since='2 weeks ago' --pretty=format:'%h - %s (%an, %ar)'
+    
+[url "git@gitlab.com-client:"]
+    # Use client SSH key for client repositories (adjust for client's Git service)
+    insteadOf = git@gitlab.com:client-organization/
+
+# Client-specific configurations
+[tag]
+    sort = version:refname
+
+[branch]
+    autoSetupMerge = always
+
+# If client uses specific Git hosting service, configure accordingly
+# Examples for different services:
+#
+# For GitLab:
+# [url "git@gitlab.client-domain.com:"]
+#     insteadOf = git@gitlab.client-domain.com:
+#
+# For Bitbucket:
+# [url "git@bitbucket.org-client:"]
+#     insteadOf = git@bitbucket.org:client-team/
+#
+# For Azure DevOps:
+# [url "git@ssh.dev.azure.com-client:"]
+#     insteadOf = git@ssh.dev.azure.com:v3/client-org/

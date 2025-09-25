@@ -1,0 +1,34 @@
+# Personal Profile Configuration
+# Place this file at ~/.config/git/profiles/personal
+
+[user]
+    name = Your Name
+    email = your.personal@email.com
+    # Uncomment and set your personal GPG signing key
+    # signingkey = YOUR_PERSONAL_GPG_KEY_ID
+
+[core]
+    # SSH configuration will be added automatically if SSH key is generated
+
+[commit]
+    # Enable GPG signing for personal commits (uncomment if needed)
+    # gpgsign = true
+
+[alias]
+    # Personal project aliases
+    publish = !git push -u origin $(git branch --show-current)
+    save = commit -am "WIP: saved progress"
+    undo = reset --soft HEAD~1
+    cleanup = !git branch --merged | grep -v '\\*\\|main\\|master' | xargs -n 1 git branch -d
+    
+[url "git@github.com-personal:"]
+    # Use personal SSH key for personal repositories
+    insteadOf = git@github.com:your-username/
+
+# Personal project preferences
+[push]
+    # Always push to upstream branch
+    default = upstream
+
+[branch]
+    autoSetupRebase = always
