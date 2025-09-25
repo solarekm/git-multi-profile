@@ -99,31 +99,31 @@ generate_key() {
 
     # Generate key based on type
     case "$key_type" in
-    rsa)
-        if [[ -n "$passphrase" ]]; then
-            ssh-keygen -t rsa -b "$key_size" -C "$email" -f "$key_path" -N "$passphrase"
-        else
-            ssh-keygen -t rsa -b "$key_size" -C "$email" -f "$key_path"
-        fi
-        ;;
-    ed25519)
-        if [[ -n "$passphrase" ]]; then
-            ssh-keygen -t ed25519 -C "$email" -f "$key_path" -N "$passphrase"
-        else
-            ssh-keygen -t ed25519 -C "$email" -f "$key_path"
-        fi
-        ;;
-    ecdsa)
-        if [[ -n "$passphrase" ]]; then
-            ssh-keygen -t ecdsa -b "$key_size" -C "$email" -f "$key_path" -N "$passphrase"
-        else
-            ssh-keygen -t ecdsa -b "$key_size" -C "$email" -f "$key_path"
-        fi
-        ;;
-    *)
-        print_error "Unsupported key type: $key_type"
-        return 1
-        ;;
+        rsa)
+            if [[ -n "$passphrase" ]]; then
+                ssh-keygen -t rsa -b "$key_size" -C "$email" -f "$key_path" -N "$passphrase"
+            else
+                ssh-keygen -t rsa -b "$key_size" -C "$email" -f "$key_path"
+            fi
+            ;;
+        ed25519)
+            if [[ -n "$passphrase" ]]; then
+                ssh-keygen -t ed25519 -C "$email" -f "$key_path" -N "$passphrase"
+            else
+                ssh-keygen -t ed25519 -C "$email" -f "$key_path"
+            fi
+            ;;
+        ecdsa)
+            if [[ -n "$passphrase" ]]; then
+                ssh-keygen -t ecdsa -b "$key_size" -C "$email" -f "$key_path" -N "$passphrase"
+            else
+                ssh-keygen -t ecdsa -b "$key_size" -C "$email" -f "$key_path"
+            fi
+            ;;
+        *)
+            print_error "Unsupported key type: $key_type"
+            return 1
+            ;;
     esac
 
     # Set correct permissions
@@ -292,22 +292,22 @@ interactive_generate() {
     read -r -p "Choose key type (1-3) [1]: " key_choice
 
     case "${key_choice:-1}" in
-    1)
-        key_type="rsa"
-        key_size="4096"
-        ;;
-    2)
-        key_type="ed25519"
-        key_size=""
-        ;;
-    3)
-        key_type="ecdsa"
-        key_size="521"
-        ;;
-    *)
-        print_error "Invalid choice"
-        exit 1
-        ;;
+        1)
+            key_type="rsa"
+            key_size="4096"
+            ;;
+        2)
+            key_type="ed25519"
+            key_size=""
+            ;;
+        3)
+            key_type="ecdsa"
+            key_size="521"
+            ;;
+        *)
+            print_error "Invalid choice"
+            exit 1
+            ;;
     esac
 
     # Ask about passphrase
@@ -385,51 +385,51 @@ main() {
 
     while [[ $# -gt 0 ]]; do
         case $1 in
-        -l | --list)
-            print_header
-            list_keys
-            exit 0
-            ;;
-        -i | --interactive)
-            print_header
-            check_prerequisites
-            interactive_generate
-            exit 0
-            ;;
-        -t | --test)
-            test_host="${2:-github.com}"
-            shift
-            print_header
-            test_connection "$test_host"
-            exit 0
-            ;;
-        --type)
-            key_type="$2"
-            shift
-            ;;
-        --size)
-            key_size="$2"
-            shift
-            ;;
-        --passphrase)
-            passphrase="$2"
-            shift
-            ;;
-        -h | --help)
-            show_help
-            exit 0
-            ;;
-        *)
-            if [[ -z "$profile_name" ]]; then
-                profile_name="$1"
-            elif [[ -z "$email" ]]; then
-                email="$1"
-            else
-                echo "Unknown argument: $1"
+            -l | --list)
+                print_header
+                list_keys
+                exit 0
+                ;;
+            -i | --interactive)
+                print_header
+                check_prerequisites
+                interactive_generate
+                exit 0
+                ;;
+            -t | --test)
+                test_host="${2:-github.com}"
+                shift
+                print_header
+                test_connection "$test_host"
+                exit 0
+                ;;
+            --type)
+                key_type="$2"
+                shift
+                ;;
+            --size)
+                key_size="$2"
+                shift
+                ;;
+            --passphrase)
+                passphrase="$2"
+                shift
+                ;;
+            -h | --help)
                 show_help
-                exit 1
-            fi
-            ;;
+                exit 0
+                ;;
+            *)
+                if [[ -z "$profile_name" ]]; then
+                    profile_name="$1"
+                elif [[ -z "$email" ]]; then
+                    email="$1"
+                else
+                    echo "Unknown argument: $1"
+                    show_help
+                    exit 1
+                fi
+                ;;
         esac
         shift
     done

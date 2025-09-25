@@ -145,19 +145,19 @@ generate_ssh_key() {
     read -r -p "Choose key type (1-2) [1]: " KEY_CHOICE
 
     case "${KEY_CHOICE:-1}" in
-    1)
-        KEY_TYPE="ed25519"
-        SSH_KEY_PATH="$HOME/.ssh/id_ed25519_$PROFILE_TYPE"
-        ;;
-    2)
-        KEY_TYPE="rsa"
-        SSH_KEY_PATH="$HOME/.ssh/id_rsa_$PROFILE_TYPE"
-        ;;
-    *)
-        print_error "Invalid choice, using Ed25519"
-        KEY_TYPE="ed25519"
-        SSH_KEY_PATH="$HOME/.ssh/id_ed25519_$PROFILE_TYPE"
-        ;;
+        1)
+            KEY_TYPE="ed25519"
+            SSH_KEY_PATH="$HOME/.ssh/id_ed25519_$PROFILE_TYPE"
+            ;;
+        2)
+            KEY_TYPE="rsa"
+            SSH_KEY_PATH="$HOME/.ssh/id_rsa_$PROFILE_TYPE"
+            ;;
+        *)
+            print_error "Invalid choice, using Ed25519"
+            KEY_TYPE="ed25519"
+            SSH_KEY_PATH="$HOME/.ssh/id_ed25519_$PROFILE_TYPE"
+            ;;
     esac
 
     if [[ -f "$SSH_KEY_PATH" ]]; then
@@ -247,18 +247,18 @@ setup_profile() {
 
     # Replace placeholders
     case $PROFILE_TYPE in
-    "work")
-        sed -i "s/Your Professional Name/$PROFILE_NAME/g" "$PROFILE_CONFIG"
-        sed -i "s/your.name@company.com/$PROFILE_EMAIL/g" "$PROFILE_CONFIG"
-        ;;
-    "personal")
-        sed -i "s/Your Name/$PROFILE_NAME/g" "$PROFILE_CONFIG"
-        sed -i "s/your.personal@email.com/$PROFILE_EMAIL/g" "$PROFILE_CONFIG"
-        ;;
-    "client")
-        sed -i "s/Your Professional Name/$PROFILE_NAME/g" "$PROFILE_CONFIG"
-        sed -i "s/your.name@client-domain.com/$PROFILE_EMAIL/g" "$PROFILE_CONFIG"
-        ;;
+        "work")
+            sed -i "s/Your Professional Name/$PROFILE_NAME/g" "$PROFILE_CONFIG"
+            sed -i "s/your.name@company.com/$PROFILE_EMAIL/g" "$PROFILE_CONFIG"
+            ;;
+        "personal")
+            sed -i "s/Your Name/$PROFILE_NAME/g" "$PROFILE_CONFIG"
+            sed -i "s/your.personal@email.com/$PROFILE_EMAIL/g" "$PROFILE_CONFIG"
+            ;;
+        "client")
+            sed -i "s/Your Professional Name/$PROFILE_NAME/g" "$PROFILE_CONFIG"
+            sed -i "s/your.name@client-domain.com/$PROFILE_EMAIL/g" "$PROFILE_CONFIG"
+            ;;
     esac
 
     # Update global config with conditional include (avoid duplicates)
@@ -417,28 +417,28 @@ main_menu() {
         read -r -p "Choose an option (1-6): " choice
 
         case $choice in
-        1)
-            setup_profile "work"
-            ;;
-        2)
-            setup_profile "personal"
-            ;;
-        3)
-            setup_profile "client"
-            ;;
-        4)
-            clean_unused_entries
-            ;;
-        5)
-            test_configuration
-            ;;
-        6)
-            print_success "Setup completed! ${ROCKET}"
-            break
-            ;;
-        *)
-            print_error "Invalid option. Please choose 1-6."
-            ;;
+            1)
+                setup_profile "work"
+                ;;
+            2)
+                setup_profile "personal"
+                ;;
+            3)
+                setup_profile "client"
+                ;;
+            4)
+                clean_unused_entries
+                ;;
+            5)
+                test_configuration
+                ;;
+            6)
+                print_success "Setup completed! ${ROCKET}"
+                break
+                ;;
+            *)
+                print_error "Invalid option. Please choose 1-6."
+                ;;
         esac
     done
 }
@@ -473,20 +473,20 @@ show_help() {
 
 # Command line argument parsing
 case "${1:-}" in
--h | --help)
-    show_help
-    exit 0
-    ;;
--t | --test)
-    test_configuration
-    exit 0
-    ;;
-"")
-    main
-    ;;
-*)
-    echo "Unknown option: $1"
-    show_help
-    exit 1
-    ;;
+    -h | --help)
+        show_help
+        exit 0
+        ;;
+    -t | --test)
+        test_configuration
+        exit 0
+        ;;
+    "")
+        main
+        ;;
+    *)
+        echo "Unknown option: $1"
+        show_help
+        exit 1
+        ;;
 esac

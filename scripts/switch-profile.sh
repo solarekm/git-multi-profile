@@ -288,46 +288,46 @@ show_help() {
 # Main execution
 main() {
     case "${1:-}" in
-    -l | --list)
-        print_header
-        list_profiles
-        ;;
-    -s | --show)
-        print_header
-        show_current_profile
-        ;;
-    -t | --test)
-        print_header
-        test_profile
-        ;;
-    -r | --reset)
-        print_header
-        reset_to_default
-        ;;
-    -i | --interactive)
-        print_header
-        interactive_select
-        ;;
-    -h | --help)
-        show_help
-        ;;
-    "")
-        print_header
-        show_current_profile
-        echo ""
-        interactive_select
-        ;;
-    *)
-        if [[ "$1" =~ ^- ]]; then
-            echo "Unknown option: $1"
-            show_help
-            exit 1
-        else
-            # Treat as profile name
+        -l | --list)
             print_header
-            apply_profile "$1"
-        fi
-        ;;
+            list_profiles
+            ;;
+        -s | --show)
+            print_header
+            show_current_profile
+            ;;
+        -t | --test)
+            print_header
+            test_profile
+            ;;
+        -r | --reset)
+            print_header
+            reset_to_default
+            ;;
+        -i | --interactive)
+            print_header
+            interactive_select
+            ;;
+        -h | --help)
+            show_help
+            ;;
+        "")
+            print_header
+            show_current_profile
+            echo ""
+            interactive_select
+            ;;
+        *)
+            if [[ "$1" =~ ^- ]]; then
+                echo "Unknown option: $1"
+                show_help
+                exit 1
+            else
+                # Treat as profile name
+                print_header
+                apply_profile "$1"
+            fi
+            ;;
     esac
 }
 

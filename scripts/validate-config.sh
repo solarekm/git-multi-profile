@@ -375,20 +375,20 @@ show_help() {
 
 # Command line argument parsing
 case "${1:-}" in
--h | --help)
-    show_help
-    exit 0
-    ;;
--q | --quick)
-    SKIP_SSH=true
-    main
-    ;;
-"")
-    main
-    ;;
-*)
-    echo "Unknown option: $1"
-    show_help
-    exit 1
-    ;;
+    -h | --help)
+        show_help
+        exit 0
+        ;;
+    -q | --quick)
+        SKIP_SSH=true
+        main
+        ;;
+    "")
+        main
+        ;;
+    *)
+        echo "Unknown option: $1"
+        show_help
+        exit 1
+        ;;
 esac
