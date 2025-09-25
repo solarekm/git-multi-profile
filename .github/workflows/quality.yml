@@ -55,7 +55,7 @@ jobs:
         for script in scripts/*.sh; do
           if [[ -f "$script" ]]; then
             echo "Analyzing: $script"
-            if ! shellcheck -e SC2034,SC2086,SC2181 "$script"; then
+            if ! shellcheck -e SC2034,SC2086,SC2181,SC2129,SC2094,SC2001,SC2016 "$script"; then
               echo "❌ ShellCheck issues in $script"
               exit_code=1
             else

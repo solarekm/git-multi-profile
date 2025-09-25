@@ -270,7 +270,21 @@ setup_profile() {
     else
         print_warning "Conditional include for $PROFILE_DIR already exists"
         # Update the path in case profile type changed
-        sed -i "/gitdir:$(echo "$PROFILE_DIR" | sed 's/[[\.*^$()+?{|]/\\&/g')\//,+1s|path.*|    path = ~/.config/git/profiles/$PROFILE_TYPE|" ~/.gitconfig
+        # Escape the profile directory for sed
+        local escaped_profile_dir="$PROFILE_DIR"
+        escaped_profile_dir=${escaped_profile_dir//\[/\\[}
+        escaped_profile_dir=${escaped_profile_dir//]/\\]}
+        escaped_profile_dir=${escaped_profile_dir//./\\.}
+        escaped_profile_dir=${escaped_profile_dir//*/\\*}
+        escaped_profile_dir=${escaped_profile_dir//^/\\^}
+        escaped_profile_dir=${escaped_profile_dir//$/\\$}
+        escaped_profile_dir=${escaped_profile_dir//(/\\(}
+        escaped_profile_dir=${escaped_profile_dir//)/\\)}
+        escaped_profile_dir=${escaped_profile_dir//+/\\+}
+        escaped_profile_dir=${escaped_profile_dir//\?/\\?}
+        escaped_profile_dir=${escaped_profile_dir//{/\\{}
+        escaped_profile_dir=${escaped_profile_dir//|/\\|}
+        sed -i "/gitdir:${escaped_profile_dir}\//,+1s|path.*|    path = ~/.config/git/profiles/$PROFILE_TYPE|" ~/.gitconfig
         print_info "Updated profile path to ~/.config/git/profiles/$PROFILE_TYPE"
     fi
     
@@ -319,7 +333,10 @@ clean_unused_entries() {
                 escaped_line=${escaped_line//{/\\{}
                 escaped_line=${escaped_line//|/\\|}
                 # Remove the includeIf line and the following path line
-                sed -i "/^$(echo "$escaped_line" | sed 's/\]/\\]/g')/,+1d" ~/.gitconfig
+                # Additional escaping for closing brackets
+                local final_escaped_line="$escaped_line"
+                final_escaped_line=${final_escaped_line//]/\\]}
+                sed -i "/^${final_escaped_line}/,+1d" ~/.gitconfig
                 ((ENTRIES_REMOVED++))
             fi
         fi
