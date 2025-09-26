@@ -31,61 +31,10 @@ trim() {
     echo "$var"
 }
 
-# Extract SSH hosts from Git configuration
+# Extract SSH hosts from Git configuration (legacy function - kept for compatibility)
 extract_ssh_hosts_from_config() {
-    local ssh_hosts=()
-
-    # Since we use core.sshCommand approach, detect hosts from existing SSH keys and common Git services
-    # Look for profile-specific SSH keys that indicate which services are used
-    if [[ -d ~/.ssh ]]; then
-        for key_file in ~/.ssh/id_*; do
-            [[ -f "$key_file" ]] || continue
-            [[ "$key_file" == *".pub" ]] && continue
-
-            # Extract profile name from key filename
-            local key_name
-            key_name=$(basename "$key_file")
-            if [[ "$key_name" =~ _([^_]+)$ ]]; then
-                local profile="${BASH_REMATCH[1]}"
-                # Common Git hosting services - test these by default
-                ssh_hosts+=("github.com")
-                ssh_hosts+=("gitlab.com")
-            fi
-        done
-    fi
-
-    # Also check if there are any URL rewrites in Git config (legacy)
-    if [[ -f ~/.gitconfig ]]; then
-        while IFS= read -r line; do
-            if [[ "$line" =~ git@([^:]+): ]]; then
-                local host="${BASH_REMATCH[1]}"
-                # Resolve SSH config aliases to real hosts
-                local resolved_host
-                resolved_host=$(resolve_ssh_host "$host")
-                ssh_hosts+=("$resolved_host")
-            fi
-        done <~/.gitconfig
-    fi
-
-    # Check profile files for any URL rewrites (legacy)
-    if [[ -d ~/.config/git/profiles ]]; then
-        for profile_file in ~/.config/git/profiles/*; do
-            # Skip template files and non-regular files
-            if [[ -f "$profile_file" && ! "$(basename "$profile_file")" =~ -template$ ]]; then
-                while IFS= read -r line; do
-                    if [[ "$line" =~ git@([^:]+): ]]; then
-                        local host="${BASH_REMATCH[1]}"
-                        local resolved_host
-                        resolved_host=$(resolve_ssh_host "$host")
-                        ssh_hosts+=("$resolved_host")
-                    fi
-                done <"$profile_file"
-            fi
-        done
-    fi
-
-    # Remove duplicates and return
-    printf '%s\n' "${ssh_hosts[@]}" | sort -u
+    # Use the new repository-based detection
+    extract_hosts_from_repositories
 }
 
 # Resolve SSH host aliases to real hostnames
@@ -118,6 +67,93 @@ resolve_ssh_host() {
     fi
 
     echo "$host"
+}
+
+# Extract SSH hosts from actual Git repositories
+extract_hosts_from_repositories() {
+    local hosts=()
+    local checked_dirs=()
+
+    # Check directories that are configured in conditional includes
+    if [[ -f ~/.gitconfig ]]; then
+        while IFS= read -r line; do
+            line=$(trim "$line")
+            if [[ "$line" =~ ^\[includeIf.*gitdir: ]]; then
+                local dir_pattern
+                dir_pattern=$(echo "$line" | sed 's/.*gitdir://;s/"].*//;s/\].*//')
+                # Remove trailing slash if present
+                dir_pattern="${dir_pattern%/}"
+
+                # If directory exists, scan for Git repositories
+                if [[ -d "$dir_pattern" ]]; then
+                    checked_dirs+=("$dir_pattern")
+
+                    # Find all Git repositories in this directory tree
+                    while IFS= read -r -d '' git_dir; do
+                        local repo_dir="${git_dir%/.git}"
+
+                        # Skip if not a valid repository
+                        [[ -d "$git_dir" ]] || continue
+
+                        # Get remote URLs from this repository
+                        local remote_urls
+                        if ! remote_urls=$(cd "$repo_dir" && git remote get-url --all origin 2>/dev/null); then
+                            remote_urls=""
+                        fi
+
+                        # Extract hosts from remote URLs (both SSH and HTTPS)
+                        while IFS= read -r url; do
+                            [[ -n "$url" ]] || continue
+
+                            if [[ "$url" =~ ^git@([^:]+): ]]; then
+                                # SSH format: git@hostname:user/repo
+                                local host="${BASH_REMATCH[1]}"
+                                local resolved_host
+                                resolved_host=$(resolve_ssh_host "$host")
+                                hosts+=("$resolved_host")
+                            elif [[ "$url" =~ ^ssh://git@([^/]+) ]]; then
+                                # SSH URL format: ssh://git@hostname/user/repo
+                                local host="${BASH_REMATCH[1]}"
+                                local resolved_host
+                                resolved_host=$(resolve_ssh_host "$host")
+                                hosts+=("$resolved_host")
+                            elif [[ "$url" =~ ^https?://([^/]+) ]]; then
+                                # HTTPS format: https://hostname/user/repo
+                                local host="${BASH_REMATCH[1]}"
+                                hosts+=("$host")
+                            fi
+                        done <<<"$remote_urls"
+
+                    done < <(find "$dir_pattern" -name ".git" -type d -print0 2>/dev/null)
+                fi
+            fi
+        done <~/.gitconfig
+    fi
+
+    # If no repositories found with remotes, fall back to common Git hosting services
+    if [[ ${#hosts[@]} -eq 0 ]]; then
+        # Check if any SSH keys exist that suggest Git hosting usage
+        if [[ -d ~/.ssh ]]; then
+            local has_git_keys=false
+            for key_file in ~/.ssh/id_*; do
+                [[ -f "$key_file" ]] || continue
+                [[ "$key_file" == *".pub" ]] && continue
+                has_git_keys=true
+                break
+            done
+
+            # If SSH keys exist, include common Git hosts as fallback
+            if [[ "$has_git_keys" == true ]]; then
+                hosts+=("github.com")
+                hosts+=("gitlab.com")
+                # Add common enterprise hosts
+                hosts+=("bitbucket.org")
+            fi
+        fi
+    fi
+
+    # Remove duplicates and return
+    printf '%s\n' "${hosts[@]}" | sort -u
 }
 
 print_header() {
