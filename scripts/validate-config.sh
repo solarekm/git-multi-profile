@@ -238,7 +238,7 @@ check_conditional_includes() {
         local current_profile=""
 
         while IFS= read -r line; do
-            # Remove leading/trailing whitespace  
+            # Remove leading/trailing whitespace
             line=$(trim "$line")
 
             if [[ "$line" =~ ^\[includeIf.*gitdir: ]]; then
