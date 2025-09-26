@@ -21,6 +21,16 @@ GEAR="🔧"
 # Skip SSH connectivity tests if requested
 SKIP_SSH=false
 
+# Safe trim function that doesn't have issues with quotes like xargs
+trim() {
+    local var="$1"
+    # Remove leading whitespace
+    var="${var#"${var%%[![:space:]]*}"}"
+    # Remove trailing whitespace
+    var="${var%"${var##*[![:space:]]}"}"
+    echo "$var"
+}
+
 # Extract SSH hosts from Git configuration
 extract_ssh_hosts_from_config() {
     local ssh_hosts=()
@@ -228,8 +238,8 @@ check_conditional_includes() {
         local current_profile=""
 
         while IFS= read -r line; do
-            # Remove leading/trailing whitespace
-            line=$(echo "$line" | xargs)
+            # Remove leading/trailing whitespace  
+            line=$(trim "$line")
 
             if [[ "$line" =~ ^\[includeIf.*gitdir: ]]; then
                 current_dir=$(echo "$line" | sed 's/.*gitdir://;s/"].*//;s/\].*//')
@@ -283,7 +293,8 @@ check_profiles() {
                 increment_check
                 if grep -q "^[[:space:]]*name[[:space:]]*=" "$profile_file"; then
                     local profile_name_val
-                    profile_name_val=$(grep "^[[:space:]]*name[[:space:]]*=" "$profile_file" | head -1 | cut -d'=' -f2 | xargs)
+                    profile_name_val=$(grep "^[[:space:]]*name[[:space:]]*=" "$profile_file" | head -1 | cut -d'=' -f2)
+                    profile_name_val=$(trim "$profile_name_val")
                     pass_check "Name configured: '$profile_name_val'"
                 else
                     fail_check "Name not configured in profile"
@@ -293,7 +304,8 @@ check_profiles() {
                 increment_check
                 if grep -q "^[[:space:]]*email[[:space:]]*=" "$profile_file"; then
                     local profile_email
-                    profile_email=$(grep "^[[:space:]]*email[[:space:]]*=" "$profile_file" | head -1 | cut -d'=' -f2 | xargs)
+                    profile_email=$(grep "^[[:space:]]*email[[:space:]]*=" "$profile_file" | head -1 | cut -d'=' -f2)
+                    profile_email=$(trim "$profile_email")
                     pass_check "Email configured: '$profile_email'"
 
                     # Validate email format
@@ -352,7 +364,8 @@ check_profiles() {
                     increment_check
                     if grep -q "^[[:space:]]*signingkey[[:space:]]*=" "$profile_file"; then
                         local signing_key
-                        signing_key=$(grep "^[[:space:]]*signingkey[[:space:]]*=" "$profile_file" | head -1 | cut -d'=' -f2 | xargs)
+                        signing_key=$(grep "^[[:space:]]*signingkey[[:space:]]*=" "$profile_file" | head -1 | cut -d'=' -f2)
+                        signing_key=$(trim "$signing_key")
                         pass_check "GPG signing enabled with key: $signing_key"
                     else
                         warn_check "GPG signing enabled but no signing key specified"
@@ -378,7 +391,7 @@ test_profile_switching() {
         local current_profile=""
 
         while IFS= read -r line; do
-            line=$(echo "$line" | xargs)
+            line=$(trim "$line")
 
             if [[ "$line" =~ ^\[includeIf.*gitdir: ]]; then
                 current_dir=$(echo "$line" | sed 's/.*gitdir://;s/"].*//;s/\].*//')
