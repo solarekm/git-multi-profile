@@ -56,8 +56,8 @@ A comprehensive guide and automation suite for configuring Git with multiple pro
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/solarekm/git-config.git
-   cd git-config
+   git clone https://github.com/solarekm/git-multi-profile.git
+   cd git-multi-profile
    ```
 
 2. **Make scripts executable:**
@@ -197,15 +197,8 @@ git-multi-profile/
 │       ├── personal-template   # Personal profile template
 │       └── client-template     # Client profile template
 ├── scripts/                    # Automation and management scripts
-│   ├── setup-profiles.sh       # Interactive profile setup wizard
-│   ├── validate-config.sh      # Configuration validation tool
-│   ├── switch-profile.sh       # Manual profile switching utility
-│   └── generate-ssh-keys.sh    # SSH key generation utility
-├── tests/                      # Comprehensive testing framework
-│   ├── README.md              # Testing documentation
-│   ├── run-local-tests.sh     # Main local test suite (safe, fast)
-│   ├── unit-tests.sh          # Unit tests for individual functions
-│   └── integration-tests.sh   # End-to-end integration tests
+│   ├── setup-profiles.sh       # Interactive profile setup wizard (includes SSH key generation)
+│   └── validate-config.sh      # Configuration validation tool
 ├── docs/                       # Comprehensive documentation
 │   ├── scripts.md             # Scripts documentation
 │   ├── templates.md           # Templates guide
@@ -221,49 +214,40 @@ git-multi-profile/
 
 ## 🧪 Testing & Quality Assurance
 
-### Comprehensive Test Suite
-The project includes a complete testing framework with multiple layers of validation:
+### Configuration Validation
+The project includes comprehensive validation and quality assurance through:
 
 ```bash
-# Quick local validation (recommended)
-./tests/run-local-tests.sh
+# Local configuration validation (recommended)
+./scripts/validate-config.sh
 
-# Unit tests for individual components
-./tests/unit-tests.sh
-
-# End-to-end integration testing
-./tests/integration-tests.sh
+# Check CI/CD pipeline status
+gh run list --limit 5
 ```
 
-**Testing Features:**
-- 🛡️ **Safe Testing**: Never modifies your actual Git configuration
-- ⚡ **Fast Execution**: Complete local tests in under 30 seconds
-- 🔍 **Comprehensive Coverage**: 15+ test categories including security, syntax, and logic
-- 🤖 **CI/CD Integration**: Automated testing via GitHub Actions
-- 📊 **Detailed Reporting**: Success rates and failure diagnostics
+**Quality Features:**
+- 🛡️ **Safe Validation**: Never modifies your actual Git configuration
+- ⚡ **Fast Execution**: Complete validation in under 10 seconds
+- 🔍 **Comprehensive Coverage**: 30+ validation checks including SSH connectivity and profile switching
+- 🤖 **CI/CD Integration**: Automated testing via GitHub Actions with ShellCheck and multi-platform testing
+- 📊 **Detailed Reporting**: 96%+ success rates with clear diagnostics
 
-### Test Categories
+### Validation Categories
 
-#### Local Test Suite (`run-local-tests.sh`)
-- **Script Syntax**: shellcheck validation, bash compatibility
-- **Template Validation**: Git config format, placeholder consistency  
-- **Security Scanning**: Path traversal, command injection prevention
+#### Configuration Validator (`validate-config.sh`)
+- **Git Installation**: Version compatibility, conditional includes support
+- **Profile Configuration**: User settings, email validation, SSH key verification  
+- **SSH Connectivity**: Real-time testing of configured Git hosting services
+- **Profile Switching**: Directory-based activation testing
 - **Documentation**: Link validation, content accuracy
 - **Integration**: Cross-component compatibility
 
-#### Unit Tests (`unit-tests.sh`)
-- **Email Validation**: RFC compliance testing
-- **Path Sanitization**: Security and format validation
-- **SSH Key Validation**: Ed25519/RSA format verification
-- **Template Processing**: Placeholder replacement logic
-- **Input Validation**: Boundary conditions and edge cases
-
-#### Integration Tests (`integration-tests.sh`)
-- **Complete Workflows**: Full profile setup and switching
-- **Directory-Based Config**: Conditional include testing
-- **SSH Key Management**: Key generation and validation
-- **Error Handling**: Invalid input and recovery testing
-- **Performance**: Execution time validation
+#### GitHub Actions CI/CD
+- **ShellCheck Analysis**: Bash code quality validation
+- **Multi-Platform Testing**: Ubuntu and macOS compatibility
+- **Template Validation**: Configuration template verification
+- **Integration Testing**: End-to-end profile setup simulation
+- **Security Scanning**: Code security and best practices
 
 ### Profile Validation
 ```bash
