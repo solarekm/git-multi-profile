@@ -33,7 +33,8 @@ extract_ssh_hosts_from_config() {
             [[ "$key_file" == *".pub" ]] && continue
             
             # Extract profile name from key filename
-            local key_name=$(basename "$key_file")
+            local key_name
+            key_name=$(basename "$key_file")
             if [[ "$key_name" =~ _([^_]+)$ ]]; then
                 local profile="${BASH_REMATCH[1]}"
                 # Common Git hosting services - test these by default
@@ -49,7 +50,8 @@ extract_ssh_hosts_from_config() {
             if [[ "$line" =~ git@([^:]+): ]]; then
                 local host="${BASH_REMATCH[1]}"
                 # Resolve SSH config aliases to real hosts  
-                local resolved_host=$(resolve_ssh_host "$host")
+                local resolved_host
+                resolved_host=$(resolve_ssh_host "$host")
                 ssh_hosts+=("$resolved_host")
             fi
         done < ~/.gitconfig
@@ -63,7 +65,8 @@ extract_ssh_hosts_from_config() {
                 while IFS= read -r line; do
                     if [[ "$line" =~ git@([^:]+): ]]; then
                         local host="${BASH_REMATCH[1]}"
-                        local resolved_host=$(resolve_ssh_host "$host")
+                        local resolved_host
+                        resolved_host=$(resolve_ssh_host "$host")
                         ssh_hosts+=("$resolved_host")
                     fi
                 done < "$profile_file"
@@ -81,7 +84,8 @@ resolve_ssh_host() {
     
     # Check if SSH config exists and has an alias for this host
     if [[ -f ~/.ssh/config ]]; then
-        local real_host=$(ssh -G "$host" 2>/dev/null | grep "^hostname " | cut -d' ' -f2)
+        local real_host
+        real_host=$(ssh -G "$host" 2>/dev/null | grep "^hostname " | cut -d' ' -f2)
         if [[ -n "$real_host" && "$real_host" != "$host" ]]; then
             echo "$real_host"
             return
@@ -94,7 +98,8 @@ resolve_ssh_host() {
         if ! nslookup "$host" &>/dev/null && ! host "$host" &>/dev/null; then
             print_warning "Host '$host' appears to be an SSH alias but doesn't resolve. Check ~/.ssh/config"
             # Try to extract base domain
-            local base_domain=$(echo "$host" | sed 's/-[^.]*$//')
+            local base_domain
+            base_domain=$(echo "$host" | sed 's/-[^.]*$//')
             if [[ "$base_domain" =~ \.(com|org|net|io)$ ]]; then
                 echo "$base_domain"
                 return
@@ -277,7 +282,8 @@ check_profiles() {
                 # Check user.name
                 increment_check
                 if grep -q "^[[:space:]]*name[[:space:]]*=" "$profile_file"; then
-                    local profile_name_val=$(grep "^[[:space:]]*name[[:space:]]*=" "$profile_file" | head -1 | cut -d'=' -f2 | xargs)
+                    local profile_name_val
+                    profile_name_val=$(grep "^[[:space:]]*name[[:space:]]*=" "$profile_file" | head -1 | cut -d'=' -f2 | xargs)
                     pass_check "Name configured: '$profile_name_val'"
                 else
                     fail_check "Name not configured in profile"
@@ -286,7 +292,8 @@ check_profiles() {
                 # Check user.email
                 increment_check
                 if grep -q "^[[:space:]]*email[[:space:]]*=" "$profile_file"; then
-                    local profile_email=$(grep "^[[:space:]]*email[[:space:]]*=" "$profile_file" | head -1 | cut -d'=' -f2 | xargs)
+                    local profile_email
+                    profile_email=$(grep "^[[:space:]]*email[[:space:]]*=" "$profile_file" | head -1 | cut -d'=' -f2 | xargs)
                     pass_check "Email configured: '$profile_email'"
 
                     # Validate email format
@@ -304,7 +311,8 @@ check_profiles() {
                 local has_ssh_config=false
                 if grep -q "^[[:space:]]*sshCommand" "$profile_file"; then
                     increment_check
-                    local ssh_key_path=$(grep "^[[:space:]]*sshCommand" "$profile_file" | sed 's/.*-i //;s/ .*//' | head -1)
+                    local ssh_key_path
+                    ssh_key_path=$(grep "^[[:space:]]*sshCommand" "$profile_file" | sed 's/.*-i //;s/ .*//' | head -1)
                     pass_check "SSH key configured: '$ssh_key_path'"
                     has_ssh_config=true
 
@@ -343,7 +351,8 @@ check_profiles() {
                 if grep -q "^[[:space:]]*gpgsign[[:space:]]*=[[:space:]]*true" "$profile_file"; then
                     increment_check
                     if grep -q "^[[:space:]]*signingkey[[:space:]]*=" "$profile_file"; then
-                        local signing_key=$(grep "^[[:space:]]*signingkey[[:space:]]*=" "$profile_file" | head -1 | cut -d'=' -f2 | xargs)
+                        local signing_key
+                        signing_key=$(grep "^[[:space:]]*signingkey[[:space:]]*=" "$profile_file" | head -1 | cut -d'=' -f2 | xargs)
                         pass_check "GPG signing enabled with key: $signing_key"
                     else
                         warn_check "GPG signing enabled but no signing key specified"
@@ -394,7 +403,8 @@ test_profile_switching() {
 
                         # Test user.name
                         increment_check
-                        local current_name=$(git config user.name 2>/dev/null || echo "")
+                        local current_name
+                        current_name=$(git config user.name 2>/dev/null || echo "")
                         if [[ -n "$current_name" ]]; then
                             pass_check "Profile active - Name: '$current_name'"
                         else
@@ -403,7 +413,8 @@ test_profile_switching() {
 
                         # Test user.email
                         increment_check
-                        local current_email=$(git config user.email 2>/dev/null || echo "")
+                        local current_email
+                        current_email=$(git config user.email 2>/dev/null || echo "")
                         if [[ -n "$current_email" ]]; then
                             pass_check "Profile active - Email: '$current_email'"
                         else
