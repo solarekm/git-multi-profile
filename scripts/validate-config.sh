@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Git Configuration Validation Script  
+# Git Configuration Validation Script
 # Validates Git profile configurations and SSH key setup
 
 # Colors and emojis
@@ -24,14 +24,14 @@ SKIP_SSH=false
 # Extract SSH hosts from Git configuration
 extract_ssh_hosts_from_config() {
     local ssh_hosts=()
-    
+
     # Since we use core.sshCommand approach, detect hosts from existing SSH keys and common Git services
     # Look for profile-specific SSH keys that indicate which services are used
     if [[ -d ~/.ssh ]]; then
         for key_file in ~/.ssh/id_*; do
             [[ -f "$key_file" ]] || continue
             [[ "$key_file" == *".pub" ]] && continue
-            
+
             # Extract profile name from key filename
             local key_name
             key_name=$(basename "$key_file")
@@ -43,20 +43,20 @@ extract_ssh_hosts_from_config() {
             fi
         done
     fi
-    
+
     # Also check if there are any URL rewrites in Git config (legacy)
     if [[ -f ~/.gitconfig ]]; then
         while IFS= read -r line; do
             if [[ "$line" =~ git@([^:]+): ]]; then
                 local host="${BASH_REMATCH[1]}"
-                # Resolve SSH config aliases to real hosts  
+                # Resolve SSH config aliases to real hosts
                 local resolved_host
                 resolved_host=$(resolve_ssh_host "$host")
                 ssh_hosts+=("$resolved_host")
             fi
-        done < ~/.gitconfig
+        done <~/.gitconfig
     fi
-    
+
     # Check profile files for any URL rewrites (legacy)
     if [[ -d ~/.config/git/profiles ]]; then
         for profile_file in ~/.config/git/profiles/*; do
@@ -69,11 +69,11 @@ extract_ssh_hosts_from_config() {
                         resolved_host=$(resolve_ssh_host "$host")
                         ssh_hosts+=("$resolved_host")
                     fi
-                done < "$profile_file"
+                done <"$profile_file"
             fi
         done
     fi
-    
+
     # Remove duplicates and return
     printf '%s\n' "${ssh_hosts[@]}" | sort -u
 }
@@ -81,7 +81,7 @@ extract_ssh_hosts_from_config() {
 # Resolve SSH host aliases to real hostnames
 resolve_ssh_host() {
     local host="$1"
-    
+
     # Check if SSH config exists and has an alias for this host
     if [[ -f ~/.ssh/config ]]; then
         local real_host
@@ -91,7 +91,7 @@ resolve_ssh_host() {
             return
         fi
     fi
-    
+
     # If it looks like a custom alias (contains dash/underscore after domain), warn about it
     if [[ "$host" =~ ^[a-z0-9.-]+\.[a-z]{2,}-[a-zA-Z0-9_-]+$ ]] || [[ "$host" =~ -[a-zA-Z0-9_-]+$ ]]; then
         # This looks like a custom SSH alias, check if it resolves
@@ -106,7 +106,7 @@ resolve_ssh_host() {
             fi
         fi
     fi
-    
+
     echo "$host"
 }
 
@@ -158,7 +158,7 @@ fail_check() {
 # Check if Git is properly configured
 check_git_installation() {
     echo -e "${WHITE}Checking Git Installation:${NC}"
-    
+
     increment_check
     if command -v git &>/dev/null; then
         GIT_VERSION=$(git --version | cut -d' ' -f3)
@@ -173,7 +173,7 @@ check_git_installation() {
     local git_major git_minor
     git_major=$(echo "$GIT_VERSION" | cut -d. -f1)
     git_minor=$(echo "$GIT_VERSION" | cut -d. -f2)
-    
+
     if [[ $git_major -gt 2 ]] || [[ $git_major -eq 2 && $git_minor -ge 13 ]]; then
         pass_check "Git version supports conditional includes"
     else
@@ -221,22 +221,22 @@ check_conditional_includes() {
 
         # List all conditional includes
         echo -e "${CYAN}  Configured profiles:${NC}"
-        
+
         # Read conditional includes properly
         local in_include_section=false
         local current_dir=""
         local current_profile=""
-        
+
         while IFS= read -r line; do
             # Remove leading/trailing whitespace
             line=$(echo "$line" | xargs)
-            
+
             if [[ "$line" =~ ^\[includeIf.*gitdir: ]]; then
                 current_dir=$(echo "$line" | sed 's/.*gitdir://;s/"].*//;s/\].*//')
                 in_include_section=true
             elif [[ "$in_include_section" == true && "$line" =~ ^path[[:space:]]*= ]]; then
                 current_profile=$(echo "$line" | sed 's/.*path[[:space:]]*=[[:space:]]*//' | tr -d '"')
-                
+
                 echo -e "    ${BLUE}Directory:${NC} $current_dir"
                 echo -e "    ${BLUE}Profile:${NC} $current_profile"
 
@@ -258,12 +258,12 @@ check_conditional_includes() {
                     fail_check "Profile file missing: $current_profile"
                 fi
                 echo ""
-                
+
                 in_include_section=false
             elif [[ "$line" =~ ^\[ ]]; then
                 in_include_section=false
             fi
-        done < ~/.gitconfig
+        done <~/.gitconfig
     else
         warn_check "No conditional includes found"
     fi
@@ -333,7 +333,7 @@ check_profiles() {
                         warn_check "SSH public key not found: ${ssh_key_path}.pub"
                     fi
                 fi
-                
+
                 # Check for URL rewrites (alternative SSH configuration)
                 if grep -q "^\[url.*git@.*:\]" "$profile_file"; then
                     if [[ "$has_ssh_config" == false ]]; then
@@ -342,7 +342,7 @@ check_profiles() {
                         has_ssh_config=true
                     fi
                 fi
-                
+
                 if [[ "$has_ssh_config" == false ]]; then
                     print_info "No SSH configuration found in profile (will use global SSH settings)"
                 fi
@@ -376,16 +376,16 @@ test_profile_switching() {
         local in_include_section=false
         local current_dir=""
         local current_profile=""
-        
+
         while IFS= read -r line; do
             line=$(echo "$line" | xargs)
-            
+
             if [[ "$line" =~ ^\[includeIf.*gitdir: ]]; then
                 current_dir=$(echo "$line" | sed 's/.*gitdir://;s/"].*//;s/\].*//')
                 in_include_section=true
             elif [[ "$in_include_section" == true && "$line" =~ ^path[[:space:]]*= ]]; then
                 current_profile=$(echo "$line" | sed 's/.*path[[:space:]]*=[[:space:]]*//' | tr -d '"')
-                
+
                 # Expand tilde for directory testing
                 local expanded_dir_path="${current_dir/#\~/$HOME}"
                 if [[ -d "$expanded_dir_path" ]]; then
@@ -394,7 +394,7 @@ test_profile_switching() {
                     # Create a temporary test directory
                     local test_dir="$expanded_dir_path/git-config-test-$$"
                     mkdir -p "$test_dir"
-                    
+
                     (
                         cd "$test_dir" || exit 1
 
@@ -425,12 +425,12 @@ test_profile_switching() {
                     # Cleanup
                     rm -rf "$test_dir" 2>/dev/null || true
                 fi
-                
+
                 in_include_section=false
             elif [[ "$line" =~ ^\[ ]]; then
                 in_include_section=false
             fi
-        done < ~/.gitconfig
+        done <~/.gitconfig
     fi
 }
 
@@ -446,20 +446,20 @@ check_ssh_connectivity() {
     # Get SSH hosts from configuration
     local ssh_hosts
     readarray -t ssh_hosts < <(extract_ssh_hosts_from_config)
-    
+
     if [[ ${#ssh_hosts[@]} -eq 0 ]]; then
         print_info "No SSH hosts configured in Git profiles - skipping SSH connectivity tests"
         return
     fi
-    
+
     echo -e "${CYAN}  Testing SSH connectivity for configured hosts:${NC}"
 
     for service in "${ssh_hosts[@]}"; do
         [[ -z "$service" ]] && continue
-        
+
         echo -e "    ${BLUE}Testing:${NC} $service"
         increment_check
-        
+
         # Quick timeout test
         if timeout 5 ssh -T "git@$service" -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes 2>&1 | grep -q "successfully authenticated\|You've successfully authenticated"; then
             pass_check "SSH connection to $service: OK"
@@ -467,7 +467,7 @@ check_ssh_connectivity() {
             # Check if it's a key issue or connectivity issue
             local ssh_output
             ssh_output=$(timeout 5 ssh -T "git@$service" -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes 2>&1 || true)
-            
+
             if echo "$ssh_output" | grep -q "Permission denied"; then
                 warn_check "SSH connection to $service: Authentication failed (check SSH keys)"
             elif timeout 3 nc -z "$service" 22 2>/dev/null; then

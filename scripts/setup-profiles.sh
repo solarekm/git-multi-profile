@@ -15,51 +15,51 @@ WHITE='\033[1;37m'
 NC='\033[0m' # No Color
 
 # Project configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Generate core SSH configuration for Git profile
 generate_core_ssh_config() {
     local profile_type="$1"
     local ssh_key_path="$2"
-    
+
     if [[ ! -f "$ssh_key_path" ]]; then
         return
     fi
-    
+
     local core_config=""
     core_config+="\n# SSH key configuration for ${profile_type} profile"
     core_config+="\n[core]"
     core_config+="\n    # Use profile-specific SSH key (fallback if ~/.ssh/config fails)"
     core_config+="\n    sshCommand = ssh -i ${ssh_key_path} -o IdentitiesOnly=yes"
-    
+
     echo -e "$core_config"
 }
 
 # Replace placeholders in profile template with actual values
 substitute_template_placeholders() {
     local profile_file="$1"
-    local name="$2"  
+    local name="$2"
     local email="$3"
-    
+
     # Replace user placeholders
     sed -i "s/{{USER_NAME}}/$name/g" "$profile_file"
     sed -i "s/{{USER_EMAIL}}/$email/g" "$profile_file"
-    
+
     # Add profile-specific aliases
     if [[ "$profile_file" == *"/work" ]]; then
-        echo "" >> "$profile_file"
-        echo "    # Work productivity aliases (auto-generated)" >> "$profile_file"
-        echo "    my-commits = log --author='$email' --since='1 month ago' --oneline" >> "$profile_file"
-        echo "    my-stats = shortlog --author='$email' --since='1 month ago' --numbered --summary" >> "$profile_file"
+        echo "" >>"$profile_file"
+        echo "    # Work productivity aliases (auto-generated)" >>"$profile_file"
+        echo "    my-commits = log --author='$email' --since='1 month ago' --oneline" >>"$profile_file"
+        echo "    my-stats = shortlog --author='$email' --since='1 month ago' --numbered --summary" >>"$profile_file"
     elif [[ "$profile_file" == *"/personal" ]]; then
         # Personal profiles use aliases from template only
-        echo "" >> "$profile_file"
+        echo "" >>"$profile_file"
     elif [[ "$profile_file" == *"/client" ]] || [[ "$(basename "$profile_file")" =~ ^[^-]+-client$ ]]; then
-        echo "" >> "$profile_file"
-        echo "    # Client-specific aliases (auto-generated)" >> "$profile_file"
-        echo "    client-commits = log --author='$email' --since='2 weeks ago' --oneline" >> "$profile_file"
-        echo "    billable-hours = log --author='$email' --since='1 week ago' --pretty=format:'%ad %s' --date=short" >> "$profile_file"
+        echo "" >>"$profile_file"
+        echo "    # Client-specific aliases (auto-generated)" >>"$profile_file"
+        echo "    client-commits = log --author='$email' --since='2 weeks ago' --oneline" >>"$profile_file"
+        echo "    billable-hours = log --author='$email' --since='1 week ago' --pretty=format:'%ad %s' --date=short" >>"$profile_file"
     fi
 }
 
@@ -284,7 +284,7 @@ generate_ssh_key() {
     echo -e "${CYAN}════════════════════════════════════════════════${NC}"
     cat "${SSH_KEY_PATH}.pub"
     echo -e "${CYAN}════════════════════════════════════════════════${NC}"
-    
+
     # Return the SSH key path for further configuration
     echo "$SSH_KEY_PATH"
 }
@@ -292,7 +292,7 @@ generate_ssh_key() {
 # Setup profile
 setup_profile() {
     local PROFILE_TYPE=$1
-    local TEMPLATE_NAME=${2:-$PROFILE_TYPE}  # Use second parameter or fall back to profile name
+    local TEMPLATE_NAME=${2:-$PROFILE_TYPE} # Use second parameter or fall back to profile name
     local TEMPLATE_FILE="$PROJECT_DIR/configs/profiles/${TEMPLATE_NAME}-template"
 
     print_step "Setting up $PROFILE_TYPE profile..."
@@ -374,7 +374,7 @@ setup_profile() {
     local existing_key_path=""
     local ssh_key_path_ed25519="$HOME/.ssh/id_ed25519_$PROFILE_TYPE"
     local ssh_key_path_rsa="$HOME/.ssh/id_rsa_$PROFILE_TYPE"
-    
+
     if [[ -f "$ssh_key_path_ed25519" ]]; then
         existing_key_path="$ssh_key_path_ed25519"
         print_info "Found existing Ed25519 SSH key: $existing_key_path"
@@ -382,10 +382,10 @@ setup_profile() {
         existing_key_path="$ssh_key_path_rsa"
         print_info "Found existing RSA SSH key: $existing_key_path"
     fi
-    
+
     local generate_ssh=false
     local ssh_key_path=""
-    
+
     if [[ -n "$existing_key_path" ]]; then
         read -p "Use existing SSH key for $PROFILE_TYPE profile? (Y/n): " -n 1 -r
         echo
@@ -413,13 +413,13 @@ setup_profile() {
         ssh_key_path="$HOME/.ssh/id_ed25519_$PROFILE_TYPE"
         [[ ! -f "$ssh_key_path" ]] && ssh_key_path="$HOME/.ssh/id_rsa_$PROFILE_TYPE"
     fi
-    
+
     # Add SSH configuration to profile if we have a key
     if [[ -n "$ssh_key_path" && -f "$ssh_key_path" ]]; then
         local core_ssh_config
         core_ssh_config=$(generate_core_ssh_config "$PROFILE_TYPE" "$ssh_key_path")
         if [[ -n "$core_ssh_config" ]]; then
-            echo -e "$core_ssh_config" >> "$PROFILE_CONFIG"
+            echo -e "$core_ssh_config" >>"$PROFILE_CONFIG"
             print_success "Added SSH configuration via core.sshCommand"
             echo -e "${CYAN}SSH key will be used automatically with all Git hosting services:${NC}"
             echo "    • Profile: ${PROFILE_TYPE}"
@@ -536,7 +536,7 @@ setup_custom_client_profile() {
     echo ""
     print_info "Setting up a custom client profile..."
     echo ""
-    
+
     # Get client profile name with validation loop
     local profile_name
     while [[ -z "$profile_name" ]]; do
@@ -545,13 +545,13 @@ setup_custom_client_profile() {
             print_error "Profile name cannot be empty. Please try again."
         fi
     done
-    
+
     # Sanitize profile name - allow only letters, numbers, dash, underscore
     if [[ ! "$profile_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
         print_error "Profile name can only contain letters, numbers, dash (-) and underscore (_)"
         return 1
     fi
-    
+
     # Check if profile already exists
     local profile_config="$HOME/.config/git/profiles/$profile_name"
     if [[ -f "$profile_config" ]]; then
@@ -562,9 +562,9 @@ setup_custom_client_profile() {
             return 0
         fi
     fi
-    
+
     print_success "Creating client profile: $profile_name"
-    
+
     # Call setup_profile with the custom name and client template
     setup_profile "$profile_name" "client"
 }
