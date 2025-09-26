@@ -8,11 +8,11 @@ All scripts are located in the `scripts/` directory:
 
 ```
 scripts/
-├── setup-profiles.sh      # Interactive profile setup wizard
-├── switch-profile.sh      # Manual profile switching utility
-├── validate-config.sh     # Configuration validation tool
-└── generate-ssh-keys.sh   # Standalone SSH key generator
+├── setup-profiles.sh      # Interactive profile setup wizard (includes SSH key generation)
+└── validate-config.sh     # Configuration validation tool
 ```
+
+**Note**: This project was simplified - removed separate scripts for SSH key generation and manual profile switching as their functionality is integrated into the main setup wizard.
 
 ## Script Details
 
@@ -138,76 +138,18 @@ scripts/
 - 70-89% → ⚠️ Configuration is mostly good, but some issues need attention
 - <70% → ❌ Configuration needs significant improvements
 
-### 3. `switch-profile.sh` - Manual Profile Switching
+### 3. Manual Operations
 
-**Purpose:** Manual profile switching utility for temporary profile changes.
+**Profile Switching**: Profiles are automatically activated based on repository directory (conditional includes). No manual switching needed.
 
-**Features:**
-- Interactive profile selection
-- Current profile detection
-- Temporary profile override
-- Profile restoration
-- Status display
+**SSH Key Generation**: Integrated into `setup-profiles.sh` with interactive key type selection and automatic configuration.
 
-**Usage:**
-```bash
-./scripts/switch-profile.sh              # Interactive mode
-./scripts/switch-profile.sh work         # Switch to work profile
-./scripts/switch-profile.sh personal     # Switch to personal profile
-./scripts/switch-profile.sh --status     # Show current profile
-./scripts/switch-profile.sh --restore    # Restore directory-based switching
-```
-
-**How It Works:**
-1. Temporarily overrides Git configuration
-2. Sets global user identity to selected profile
-3. Maintains original conditional includes for future use
-4. Provides restoration mechanism
-
-**Use Cases:**
-- Quick profile switching for one-off commits
-- Testing profile configurations
-- Working outside configured directories
-- Emergency profile override
-
-**Limitations:**
-- Temporary changes only (not persistent)
-- Doesn't affect SSH configuration
-- Global override affects all repositories until restored
-
-### 4. `generate-ssh-keys.sh` - SSH Key Generator
-
-**Purpose:** Standalone SSH key generation utility with advanced options.
-
-**Features:**
-- Multiple key type support (Ed25519, RSA)
-- Batch key generation
-- Profile-specific key naming
-- Key strength configuration
-- Passphrase management
-
-**Usage:**
-```bash
-./scripts/generate-ssh-keys.sh           # Interactive mode
-./scripts/generate-ssh-keys.sh ed25519 work user@company.com
-./scripts/generate-ssh-keys.sh rsa personal user@personal.com
-./scripts/generate-ssh-keys.sh --list    # List existing keys
-```
-
-**Key Types:**
-- **Ed25519** (recommended): Modern, fast, secure
-- **RSA 4096**: Traditional, widely compatible
-
-**Features:**
-- **Profile Integration:** Automatically names keys by profile
-- **Passphrase Options:** Interactive passphrase setting
-- **Overwrite Protection:** Confirms before replacing existing keys
-- **Public Key Display:** Shows generated public key
-- **Profile Update:** Can update Git profile with new SSH configuration
-
-**Key Naming Convention:**
-- Ed25519: `~/.ssh/id_ed25519_{profile}`
-- RSA: `~/.ssh/id_rsa_{profile}`
+**Key Features:**
+- Ed25519 (recommended) and RSA 4096 support
+- Profile-specific key naming: `~/.ssh/id_ed25519_{profile}`
+- Interactive passphrase setting with confirmation
+- Automatic `core.sshCommand` configuration
+- Public key display for easy copying to Git services
 
 ## Common Usage Patterns
 
@@ -254,7 +196,7 @@ scripts/
 
 4. **Update SSH keys** when they expire:
    ```bash
-   ./scripts/generate-ssh-keys.sh
+   ./scripts/setup-profiles.sh  # Choose existing profile to update keys
    ```
 
 ### Troubleshooting Workflow
@@ -291,7 +233,7 @@ scripts/
 ### Cross-Script Integration
 - `setup-profiles.sh` calls functions from other scripts internally
 - `validate-config.sh` can be called independently or from setup
-- `generate-ssh-keys.sh` can be used standalone or integrated
+- SSH key generation is integrated into setup-profiles.sh
 - All scripts respect the same configuration structure
 
 ## Error Handling
@@ -347,7 +289,7 @@ echo -e "1\nJohn Smith\njohn@company.com\n/workspace/work\ny\n1\n\n6" | ./script
 ### Custom SSH Key Types
 
 To support additional key types:
-1. Update `generate-ssh-keys.sh` key type menu
+1. Update SSH key generation in `setup-profiles.sh`
 2. Add case statement for new type
 3. Update validation logic in `validate-config.sh`
 4. Test key generation and validation

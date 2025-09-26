@@ -1,150 +1,292 @@
-# 🔑 SSH Key Setup Guide
+# 🔑 SSH Key Setup Guide# 🔑 SSH Key Setup Guide
 
-This guide explains how to set up and manage SSH keys for different Git profiles.
 
-## Overview
 
-When using multiple Git profiles, you'll typically want separate SSH keys for:
-- **Work/Corporate** repositories (company GitHub/GitLab)
-- **Personal** repositories (personal GitHub/GitLab)
-- **Client** repositories (client-specific Git services)
+This guide explains the modern SSH key setup for Git multi-profile system.This guide explains the modern SSH key setup for Git multi-profile system.
 
-## Why Separate SSH Keys?
 
-- **Security**: Isolate access permissions between different contexts
-- **Organization**: Clear separation of professional and personal identities
-- **Compliance**: Meet corporate security requirements
-- **Flexibility**: Different key types/sizes for different security levels
 
-## Step-by-Step Setup
+## Overview## Overview
 
-### 1. Generate SSH Key Pairs
 
-For each profile, generate a separate SSH key pair:
 
-```bash
-# Work profile
-ssh-keygen -t rsa -b 4096 -C "your.work@company.com" -f ~/.ssh/id_rsa_work
+This project uses **core.sshCommand** approach - a simplified and reliable method that doesn't require SSH config files or URL rewriting.This project uses **core.sshCommand** approach - a simplified and reliable method that doesn't require SSH config files or URL rewriting.
 
-# Personal profile  
-ssh-keygen -t rsa -b 4096 -C "your.personal@email.com" -f ~/.ssh/id_rsa_personal
+
+
+## Why This Approach?## Why This Approach?
+
+
+
+### ✅ Benefits of core.sshCommand:### ✅ Benefits of core.sshCommand:
+
+- **Universal**: Works with all Git hosting services (GitHub, GitLab, Bitbucket, etc.)- **Universal**: Works with all Git hosting services (GitHub, GitLab, Bitbucket, etc.)
+
+- **Simple**: No complex SSH config files to maintain- **Simple**: No complex SSH config files to maintain
+
+- **Reliable**: No conflicts between different SSH configurations  - **Reliable**: No conflicts between different SSH configurations  
+
+- **Automatic**: Per-profile SSH key selection handled by Git- **Automatic**: Per-profile SSH key selection handled by Git
+
+- **Clean**: No URL rewriting or aliases needed- **Clean**: No URL rewriting or aliases needed
+
+
+
+### ❌ Problems with old SSH config approach:### ❌ Problems with old SSH config approach:
+
+- Complex ~/.ssh/config files- Complex ~/.ssh/config files
+
+- SSH aliases (github.com-work, gitlab.com-personal)- SSH aliases (github.com-work, gitlab.com-personal)
+
+- URL rewrite rules needed- URL rewrite rules needed
+
+- Hard to troubleshoot conflicts- Hard to troubleshoot conflicts
+
+
+
+## Automated Setup## Automated Setup
+
+
+
+The `setup-profiles.sh` script handles everything automatically:The `setup-profiles.sh` script handles everything automatically:
+
+
+
+```bash```bash
+
+# Run the interactive setup wizard# Run the interactive setup wizard
+
+./scripts/setup-profiles.sh./scripts/setup-profiles.sh
+
+```
 
 # Client profile (replace 'client' with actual client name)
-ssh-keygen -t rsa -b 4096 -C "your.email@client.com" -f ~/.ssh/id_rsa_client
+
+## What the Script Doesssh-keygen -t rsa -b 4096 -C "your.email@client.com" -f ~/.ssh/id_rsa_client
+
 ```
 
-**Key Generation Options:**
-- `-t rsa`: Key type (RSA is widely supported)
-- `-b 4096`: Key size (4096 bits for enhanced security)
+1. **Generates SSH Keys**: Creates Ed25519 or RSA keys per profile
+
+2. **Configures Git Profiles**: Adds `core.sshCommand` to each profile  **Key Generation Options:**
+
+3. **Shows Public Keys**: Displays keys to add to Git hosting services- `-t rsa`: Key type (RSA is widely supported)
+
+4. **Tests Configuration**: Validates the setup works correctly- `-b 4096`: Key size (4096 bits for enhanced security)
+
 - `-C "email"`: Comment (typically your email)
-- `-f filename`: Output filename
 
-### 2. Add SSH Keys to SSH Agent
+## Manual Key Management- `-f filename`: Output filename
 
-```bash
-# Start SSH agent
-eval "$(ssh-agent -s)"
 
-# Add keys to agent
-ssh-add ~/.ssh/id_rsa_work
-ssh-add ~/.ssh/id_rsa_personal
-ssh-add ~/.ssh/id_rsa_client
 
-# List loaded keys
+If you need to check your keys manually:### 2. Add SSH Keys to SSH Agent
+
+
+
+```bash```bash
+
+# List generated keys# Start SSH agent
+
+ls ~/.ssh/id_*eval "$(ssh-agent -s)"
+
+
+
+# View public key (copy this to GitHub/GitLab)# Add keys to agent
+
+cat ~/.ssh/id_ed25519_work.pubssh-add ~/.ssh/id_rsa_work
+
+cat ~/.ssh/id_ed25519_personal.pubssh-add ~/.ssh/id_rsa_personal
+
+```ssh-add ~/.ssh/id_rsa_client
+
+
+
+## How It Works# List loaded keys
+
 ssh-add -l
-```
 
-### 3. Configure SSH Config File
+Each Git profile gets its own SSH configuration:```
 
-Create or edit `~/.ssh/config` to define host aliases:
 
-```ssh
+
+```ini### 3. Configure SSH Config File
+
+# Example: ~/.config/git/profiles/work
+
+[user]Create or edit `~/.ssh/config` to define host aliases:
+
+    name = Your Name
+
+    email = work@company.com```ssh
+
 # Work GitHub
-Host github.com-work
-    HostName github.com
+
+[core]Host github.com-work
+
+    sshCommand = ssh -i ~/.ssh/id_ed25519_work -o IdentitiesOnly=yes    HostName github.com
+
     User git
-    IdentityFile ~/.ssh/id_rsa_work
+
+# Example: ~/.config/git/profiles/personal      IdentityFile ~/.ssh/id_rsa_work
+
+[user]    IdentitiesOnly yes
+
+    name = Your Name
+
+    email = personal@email.com# Personal GitHub
+
+Host github.com-personal
+
+[core]    HostName github.com
+
+    sshCommand = ssh -i ~/.ssh/id_ed25519_personal -o IdentitiesOnly=yes    User git
+
+```    IdentityFile ~/.ssh/id_rsa_personal
+
     IdentitiesOnly yes
 
-# Personal GitHub
-Host github.com-personal
-    HostName github.com
-    User git
-    IdentityFile ~/.ssh/id_rsa_personal
-    IdentitiesOnly yes
+## Adding Keys to Git Hosting Services
 
 # Client GitLab
-Host gitlab.com-client
-    HostName gitlab.com
-    User git
-    IdentityFile ~/.ssh/id_rsa_client
-    IdentitiesOnly yes
 
-# Default GitHub (fallback to personal)
-Host github.com
-    HostName github.com
-    User git
-    IdentityFile ~/.ssh/id_rsa_personal
-    IdentitiesOnly yes
-```
+### GitHubHost gitlab.com-client
 
-### 4. Add Public Keys to Git Services
+1. Copy your public key: `cat ~/.ssh/id_ed25519_work.pub`    HostName gitlab.com
 
-Copy and add your public keys to the appropriate Git hosting services:
+2. Go to GitHub → Settings → SSH and GPG keys    User git
 
-```bash
-# Display public keys
-cat ~/.ssh/id_rsa_work.pub
-cat ~/.ssh/id_rsa_personal.pub
-cat ~/.ssh/id_rsa_client.pub
-```
+3. Click "New SSH key" and paste the public key## What the Script Does
 
-#### GitHub:
+
+
+### GitLab1. **Generates SSH Keys**: Creates Ed25519 or RSA keys per profile
+
+1. Copy your public key: `cat ~/.ssh/id_ed25519_personal.pub`2. **Configures Git Profiles**: Adds `core.sshCommand` to each profile  
+
+2. Go to GitLab → Preferences → SSH Keys  3. **Shows Public Keys**: Displays keys to add to Git hosting services
+
+3. Paste the key and give it a title4. **Tests Configuration**: Validates the setup works correctly
+
+
+
+### Testing SSH Connection## Manual Key Management
+
+
+
+```bashIf you need to check your keys manually:
+
+# Test connection (will use the appropriate key automatically)
+
+ssh -T git@github.com```bash
+
+ssh -T git@gitlab.com# List generated keys
+
+```ls ~/.ssh/id_*
+
+
+
+## Troubleshooting# View public key (copy this to GitHub/GitLab)
+
+cat ~/.ssh/id_ed25519_work.pub
+
+### Key Not Foundcat ~/.ssh/id_ed25519_personal.pub
+
+```bash```
+
+# Verify key exists
+
+ls -la ~/.ssh/id_ed25519_*#### GitHub:
+
 1. Go to Settings → SSH and GPG keys
-2. Click "New SSH key"
-3. Paste the public key content
-4. Give it a descriptive title (e.g., "Work Laptop - 2025")
+
+# Check permissions2. Click "New SSH key"
+
+chmod 600 ~/.ssh/id_ed25519_*3. Paste the public key content
+
+chmod 644 ~/.ssh/id_ed25519_*.pub4. Give it a descriptive title (e.g., "Work Laptop - 2025")
+
+```
 
 #### GitLab:
-1. Go to Preferences → SSH Keys
-2. Paste the public key content
-3. Add a title and optional expiration date
+
+### Connection Issues1. Go to Preferences → SSH Keys
+
+```bash2. Paste the public key content
+
+# Test with verbose output3. Add a title and optional expiration date
+
+ssh -vT git@github.com
 
 #### Bitbucket:
-1. Go to Personal settings → SSH keys
-2. Click "Add key"
-3. Paste the public key content
 
-### 5. Configure Git Profiles
+# Check which key Git is trying to use1. Go to Personal settings → SSH keys
+
+GIT_SSH_COMMAND="ssh -v" git ls-remote origin2. Click "Add key"
+
+```3. Paste the public key content
+
+
+
+### Multiple Keys Conflict### 5. Configure Git Profiles
+
+The `IdentitiesOnly=yes` option ensures only the specified key is used, preventing conflicts.
 
 In your Git profile configurations, specify which SSH key to use:
 
-```ini
-# Work profile (~/.config/git/profiles/work)
-[core]
-    sshCommand = ssh -i ~/.ssh/id_rsa_work -F /dev/null
+## Security Best Practices
 
-[url "git@github.com-work:"]
+```ini
+
+- **Use Ed25519 keys** (modern, secure, fast)# Work profile (~/.config/git/profiles/work)
+
+- **Set passphrases** on private keys[core]
+
+- **Use ssh-agent** for convenience    sshCommand = ssh -i ~/.ssh/id_rsa_work -F /dev/null
+
+- **Separate keys per context** (work/personal/client)
+
+- **Regular key rotation** (annually recommended)[url "git@github.com-work:"]
+
     insteadOf = git@github.com:company-org/
 
+## Migration from SSH Config
+
 # Personal profile (~/.config/git/profiles/personal)  
-[core]
+
+If you're migrating from the old SSH config approach:[core]
+
     sshCommand = ssh -i ~/.ssh/id_rsa_personal -F /dev/null
 
-[url "git@github.com-personal:"]
-    insteadOf = git@github.com:your-username/
+```bash
+
+# 1. Remove old SSH config entries[url "git@github.com-personal:"]
+
+# Edit ~/.ssh/config and remove Host aliases    insteadOf = git@github.com:your-username/
+
 ```
 
-## Testing SSH Connections
+# 2. Remove URL rewrites from Git configs  
 
-Test each SSH key configuration:
+# Check: git config --list | grep url## Testing SSH Connections
+
+
+
+# 3. Run the setup script to configure core.sshCommandTest each SSH key configuration:
+
+./scripts/setup-profiles.sh
 
 ```bash
-# Test work key
-ssh -T git@github.com-work
+
+# 4. Validate the new setup# Test work key
+
+./scripts/validate-config.shssh -T git@github.com-work
+
+```
 
 # Test personal key
-ssh -T git@github.com-personal
+
+This modern approach is simpler, more reliable, and works universally with all Git hosting services.ssh -T git@github.com-personal
 
 # Test client key
 ssh -T git@gitlab.com-client

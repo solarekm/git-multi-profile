@@ -1,34 +1,64 @@
 # Personal Profile Configuration
-# Place this file at ~/.config/git/profiles/personal
+# Optimized for: Personal projects, experimentation, maximum productivity
+# Philosophy: Speed, flexibility, clean history, fearless experimentation
 
+# ============================================================================
+# USER IDENTITY - Personal email and name
+# ============================================================================
 [user]
-    name = Your Name
-    email = your.personal@email.com
-    # Uncomment and set your personal GPG signing key
-    # signingkey = YOUR_PERSONAL_GPG_KEY_ID
+    # Your personal name for personal projects
+    name = {{USER_NAME}}
+    # Your personal email (usually different from work email)
+    email = {{USER_EMAIL}}
+    # Optional: GPG key for signed commits (security for open source)
+    # signingkey = {{GPG_KEY_ID}}
 
-[core]
-    # SSH configuration will be added automatically if SSH key is generated
-
+# ============================================================================
+# COMMIT SETTINGS - Optional commit signing
+# ============================================================================
 [commit]
-    # Enable GPG signing for personal commits (uncomment if needed)
+    # Optional: Sign all commits with GPG (proves authenticity)
+    # Uncomment if you want verified badges on GitHub
     # gpgsign = true
 
+# ============================================================================
+# PERSONAL WORKFLOW ALIASES - Fast, experimental workflow
+# ============================================================================
 [alias]
-    # Personal project aliases
+    # PUBLISHING: Quick branch publishing to GitHub/GitLab
+    # Usage: git publish (pushes current branch and sets upstream)
+    # Perfect for: Sharing work-in-progress, creating PRs
     publish = !git push -u origin $(git branch --show-current)
-    save = commit -am "WIP: saved progress"
-    undo = reset --soft HEAD~1
-    cleanup = !git branch --merged | grep -v '\\*\\|main\\|master' | xargs -n 1 git branch -d
     
-[url "git@github.com-personal:"]
-    # Use personal SSH key for personal repositories
-    insteadOf = git@github.com:your-username/
+    # QUICK SAVE: Fast work-in-progress commits
+    # Usage: git save (commits all changes with WIP message)
+    # Perfect for: End-of-day saves, switching context quickly
+    save = commit -am "WIP: saved progress"
+    
+    # UNDO: Safe way to undo last commit (keeps changes staged)
+    # Usage: git undo (removes last commit but keeps files changed)
+    # Perfect for: Fixing commit messages, splitting commits
+    undo = reset --soft HEAD~1
+    
+    # CLEANUP: Remove merged branches automatically
+    # Usage: git cleanup (deletes all merged branches except main/master)
+    # Perfect for: Keeping branch list clean after PR merges
+    cleanup = !git branch --merged | grep -v '\\*\\|main\\|master' | xargs -n 1 git branch -d
 
-# Personal project preferences
+# ============================================================================
+# PUSH STRATEGY - Flexible pushing for personal projects
+# ============================================================================
 [push]
-    # Always push to upstream branch
+    # Push to upstream branch (more flexible than 'simple')
+    # Allows different local/remote branch names
+    # Good for personal projects where you might rename branches
     default = upstream
 
+# ============================================================================
+# BRANCH BEHAVIOR - Clean history with automatic rebase
+# ============================================================================
 [branch]
+    # Always rebase when pulling instead of merging
+    # Creates linear, clean history perfect for personal projects
+    # Avoids unnecessary merge commits in solo development
     autoSetupRebase = always

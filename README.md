@@ -33,10 +33,8 @@ A comprehensive guide and automation suite for configuring Git with multiple pro
   - `personal-template` - Personal profile configuration template
   - `client-template` - Client profile configuration template
 - `scripts/` - Automation scripts for profile management
-  - `setup-profiles.sh` - Interactive profile setup wizard
+  - `setup-profiles.sh` - Interactive profile setup wizard (includes SSH key generation)
   - `validate-config.sh` - Configuration validation tool
-  - `switch-profile.sh` - Manual profile switching utility
-  - `generate-ssh-keys.sh` - SSH key generation utility
 - `docs/` - Comprehensive documentation and guides
   - `scripts.md` - Complete scripts documentation
   - `templates.md` - Templates guide and reference

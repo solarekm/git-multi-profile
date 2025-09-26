@@ -1,47 +1,54 @@
 # Client Profile Configuration Template
-# Copy and customize this file for each client
-# Place customized version at ~/.config/git/profiles/client-name
+# Optimized for: Client projects, freelancing, transparent billing
+# Philosophy: Client transparency, deliverable tracking, professional presentation
 
+# ============================================================================
+# USER IDENTITY - Client-facing credentials
+# ============================================================================
 [user]
-    name = Your Professional Name
-    email = your.name@client-domain.com
-    # Uncomment and set client-specific GPG signing key if required
-    # signingkey = CLIENT_SPECIFIC_GPG_KEY_ID
+    # Your professional name as it appears on contracts/invoices
+    name = {{USER_NAME}}
+    # Email address client knows you by (might be different per client)
+    email = {{USER_EMAIL}}
+    # Optional: Professional GPG key for client trust
+    # signingkey = {{GPG_KEY_ID}}
 
-[core]
-    # SSH configuration will be added automatically if SSH key is generated
-
+# ============================================================================
+# COMMIT SETTINGS - Professional authenticity
+# ============================================================================
 [commit]
-    # Enable GPG signing if client requires it
+    # Optional: Sign commits for client trust and authenticity
+    # Shows professionalism and commitment to security
     # gpgsign = true
 
+# ============================================================================
+# CLIENT WORKFLOW ALIASES - Transparency and reporting tools
+# ============================================================================
 [alias]
-    # Client-specific aliases
-    client-log = log --author='your.name@client-domain.com' --since='1 week ago' --oneline
-    deliverable = log --since='2 weeks ago' --pretty=format:'%h - %s (%an, %ar)'
+    # WEEKLY CLIENT UPDATE: Show recent work for client
+    # Usage: git client-log (shows your work from past week)
+    # Perfect for: Weekly client calls, progress reports, billing transparency
+    client-log = log --author='{{USER_EMAIL}}' --since='1 week ago' --oneline
     
-[url "git@gitlab.com-client:"]
-    # Use client SSH key for client repositories (adjust for client's Git service)
-    insteadOf = git@gitlab.com:client-organization/
+    # DELIVERABLE REPORT: Professional format for client presentations
+    # Usage: git deliverable (creates nice report of recent work)
+    # Perfect for: Invoices, milestone reports, client presentations
+    # Format shows: commit hash, description, author, time ago
+    deliverable = log --since='2 weeks ago' --pretty=format:'%h - %s (%an, %ar)'
 
-# Client-specific configurations
+# ============================================================================
+# VERSION MANAGEMENT - Client release tracking
+# ============================================================================
 [tag]
+    # Sort tags by version number for clear client communication
+    # Essential for: Client releases, billing milestones, feature delivery
     sort = version:refname
 
+# ============================================================================
+# BRANCH BEHAVIOR - Audit trail for client projects
+# ============================================================================
 [branch]
+    # Preserve merge history for client audit trails
+    # Shows complete development timeline and decision points
+    # Important for: Client transparency, project archaeology, billing disputes
     autoSetupMerge = always
-
-# If client uses specific Git hosting service, configure accordingly
-# Examples for different services:
-#
-# For GitLab:
-# [url "git@gitlab.client-domain.com:"]
-#     insteadOf = git@gitlab.client-domain.com:
-#
-# For Bitbucket:
-# [url "git@bitbucket.org-client:"]
-#     insteadOf = git@bitbucket.org:client-team/
-#
-# For Azure DevOps:
-# [url "git@ssh.dev.azure.com-client:"]
-#     insteadOf = git@ssh.dev.azure.com:v3/client-org/

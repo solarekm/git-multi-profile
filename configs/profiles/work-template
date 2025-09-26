@@ -1,34 +1,59 @@
 # Work Profile Configuration
-# Place this file at ~/.config/git/profiles/work
+# Optimized for: Corporate projects, team collaboration, accountability
+# Philosophy: Professional reporting, code reviews, proper documentation
 
+# ============================================================================
+# USER IDENTITY - Work credentials
+# ============================================================================
 [user]
-    name = Your Professional Name
-    email = your.name@company.com
-    # Uncomment and set your work GPG signing key
-    # signingkey = YOUR_WORK_GPG_KEY_ID
+    # Your full name as registered in company systems
+    name = {{USER_NAME}}
+    # Your work email (company domain, linked to corporate accounts)
+    email = {{USER_EMAIL}}
+    # Optional: Company-issued GPG key for signed commits
+    # signingkey = {{GPG_KEY_ID}}
 
-[core]
-    # SSH configuration will be added automatically if SSH key is generated
-
+# ============================================================================
+# COMMIT SETTINGS - Corporate security requirements
+# ============================================================================
 [commit]
-    # Enable GPG signing for work commits (uncomment if needed)
+    # Optional: Sign commits with company GPG key
+    # Often required by corporate security policies
     # gpgsign = true
 
+# ============================================================================
+# WORK WORKFLOW ALIASES - Professional reporting and collaboration
+# ============================================================================
 [alias]
-    # Work-specific aliases
-    standup = log --since='yesterday' --author='your.name@company.com' --oneline --no-merges
-    work-log = log --author='your.name@company.com' --since='1 week ago' --oneline
-    review = diff --cached
+    # DAILY STANDUP: Quick summary for team meetings
+    # Usage: git standup (shows what you worked on yesterday)
+    # Perfect for: Daily scrum meetings, status updates to manager
+    standup = log --since='yesterday' --author='{{USER_EMAIL}}' --oneline --no-merges
     
-[url "git@github.com-work:"]
-    # Use work SSH key for company repositories
-    insteadOf = git@github.com:company-name/
+    # WEEKLY REPORT: Comprehensive work summary
+    # Usage: git work-log (shows all your work from past week)
+    # Perfect for: Weekly reports, performance reviews, time tracking
+    work-log = log --author='{{USER_EMAIL}}' --since='1 week ago' --oneline
+    
+    # CODE REVIEW: Preview changes before committing
+    # Usage: git review (shows exactly what will be committed)
+    # Perfect for: Self-review before push, ensuring quality
+    review = diff --cached
 
-# Additional work-specific configurations
+# ============================================================================
+# VERSION MANAGEMENT - Professional release handling
+# ============================================================================
 [tag]
-    # Sort tags by version (useful for release management)
+    # Sort tags by version number (v1.0.0, v1.1.0, v2.0.0)
+    # Ensures proper semantic versioning display
+    # Critical for: Release management, deployment pipelines
     sort = version:refname
 
+# ============================================================================
+# BRANCH BEHAVIOR - Team collaboration with merge history
+# ============================================================================
 [branch]
-    # Automatically set up tracking when creating branches
+    # Always merge instead of rebase (preserves collaboration history)
+    # Shows who worked on what and when branches were integrated
+    # Important for: Code archaeology, understanding team dynamics
     autoSetupMerge = always

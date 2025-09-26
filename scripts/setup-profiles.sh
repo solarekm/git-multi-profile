@@ -10,7 +10,60 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+NC='\033[0m' # No Color
+
+# Project configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Generate core SSH configuration for Git profile
+generate_core_ssh_config() {
+    local profile_type="$1"
+    local ssh_key_path="$2"
+    
+    if [[ ! -f "$ssh_key_path" ]]; then
+        return
+    fi
+    
+    local core_config=""
+    core_config+="\n# SSH key configuration for ${profile_type} profile"
+    core_config+="\n[core]"
+    core_config+="\n    # Use profile-specific SSH key (fallback if ~/.ssh/config fails)"
+    core_config+="\n    sshCommand = ssh -i ${ssh_key_path} -o IdentitiesOnly=yes"
+    
+    echo -e "$core_config"
+}
+
+# Replace placeholders in profile template with actual values
+substitute_template_placeholders() {
+    local profile_file="$1"
+    local name="$2"  
+    local email="$3"
+    
+    # Replace user placeholders
+    sed -i "s/{{USER_NAME}}/$name/g" "$profile_file"
+    sed -i "s/{{USER_EMAIL}}/$email/g" "$profile_file"
+    
+    # Add profile-specific aliases
+    if [[ "$profile_file" == *"/work" ]]; then
+        echo "" >> "$profile_file"
+        echo "    # Work productivity aliases (auto-generated)" >> "$profile_file"
+        echo "    my-commits = log --author='$email' --since='1 month ago' --oneline" >> "$profile_file"
+        echo "    my-stats = shortlog --author='$email' --since='1 month ago' --numbered --summary" >> "$profile_file"
+    elif [[ "$profile_file" == *"/personal" ]]; then
+        # Personal profiles use aliases from template only
+        echo "" >> "$profile_file"
+    elif [[ "$profile_file" == *"/client" ]] || [[ "$(basename "$profile_file")" =~ ^[^-]+-client$ ]]; then
+        echo "" >> "$profile_file"
+        echo "    # Client-specific aliases (auto-generated)" >> "$profile_file"
+        echo "    client-commits = log --author='$email' --since='2 weeks ago' --oneline" >> "$profile_file"
+        echo "    billable-hours = log --author='$email' --since='1 week ago' --pretty=format:'%ad %s' --date=short" >> "$profile_file"
+    fi
+}
+
+# Ensure SSH config file exists with proper permissionsPLE='\033[0;35m'
 CYAN='\033[0;36m'
 WHITE='\033[1;37m'
 NC='\033[0m' # No Color
@@ -51,6 +104,26 @@ print_error() {
 
 print_info() {
     echo -e "${BLUE}${INFO} $1${NC}"
+}
+
+# Scan directory for existing Git repositories
+# Repository scanning functions removed - core.sshCommand works universally with all Git hosts
+
+# All repository scanning functions removed
+
+# Generate URL rewrite configuration for discovered hosts
+# URL rewrite generation removed - core.sshCommand handles SSH key selection automatically
+# No need for git@host-profile: aliases when using per-profile SSH configuration
+
+# SSH config generation removed - using only core.sshCommand per-profile approach
+
+# Ensure SSH config file exists and has proper permissions
+ensure_ssh_config() {
+    if [[ ! -f ~/.ssh/config ]]; then
+        touch ~/.ssh/config
+        chmod 600 ~/.ssh/config
+        print_info "Created ~/.ssh/config with secure permissions"
+    fi
 }
 
 # Check prerequisites
@@ -121,9 +194,8 @@ configure_global() {
     # Copy and customize global config
     cp "$PROJECT_DIR/configs/profiles/global-template" ~/.gitconfig.tmp
 
-    # Replace placeholders
-    sed -i "s/Your Name/$DEFAULT_NAME/g" ~/.gitconfig.tmp
-    sed -i "s/your.email@example.com/$DEFAULT_EMAIL/g" ~/.gitconfig.tmp
+    # Replace placeholders using our centralized function
+    substitute_template_placeholders ~/.gitconfig.tmp "$DEFAULT_NAME" "$DEFAULT_EMAIL"
 
     mv ~/.gitconfig.tmp ~/.gitconfig
 
@@ -206,34 +278,53 @@ generate_ssh_key() {
     print_success "SSH key generated: $SSH_KEY_PATH"
     print_info "Public key: ${SSH_KEY_PATH}.pub"
 
-    # Add SSH configuration to profile
-    local PROFILE_CONFIG="$HOME/.config/git/profiles/$PROFILE_TYPE"
-    if [[ -f "$PROFILE_CONFIG" ]]; then
-        # Add SSH command after the core section comment
-        sed -i "/# SSH configuration will be added automatically if SSH key is generated/a\\    sshCommand = ssh -i $SSH_KEY_PATH -F /dev/null" "$PROFILE_CONFIG"
-        print_success "SSH configuration added to profile"
-    fi
-
     # Show public key
     echo ""
     echo -e "${WHITE}Public Key (add this to your Git hosting service):${NC}"
     echo -e "${CYAN}════════════════════════════════════════════════${NC}"
     cat "${SSH_KEY_PATH}.pub"
     echo -e "${CYAN}════════════════════════════════════════════════${NC}"
+    
+    # Return the SSH key path for further configuration
+    echo "$SSH_KEY_PATH"
 }
 
 # Setup profile
 setup_profile() {
     local PROFILE_TYPE=$1
-    local TEMPLATE_FILE="$PROJECT_DIR/configs/profiles/${PROFILE_TYPE}-template"
+    local TEMPLATE_NAME=${2:-$PROFILE_TYPE}  # Use second parameter or fall back to profile name
+    local TEMPLATE_FILE="$PROJECT_DIR/configs/profiles/${TEMPLATE_NAME}-template"
 
     print_step "Setting up $PROFILE_TYPE profile..."
 
     echo -e "${WHITE}$PROFILE_TYPE Profile Configuration:${NC}"
 
-    read -r -p "Enter name for $PROFILE_TYPE profile: " PROFILE_NAME
-    read -r -p "Enter email for $PROFILE_TYPE profile: " PROFILE_EMAIL
-    read -r -p "Enter directory path for $PROFILE_TYPE repositories (e.g., ~/repositories/$PROFILE_TYPE): " PROFILE_DIR
+    # Get profile name with validation
+    while [[ -z "$PROFILE_NAME" ]]; do
+        read -r -p "Enter name for $PROFILE_TYPE profile: " PROFILE_NAME
+        if [[ -z "$PROFILE_NAME" ]]; then
+            print_error "Name cannot be empty. Please try again."
+        fi
+    done
+
+    # Get profile email with validation
+    while [[ -z "$PROFILE_EMAIL" ]]; do
+        read -r -p "Enter email for $PROFILE_TYPE profile: " PROFILE_EMAIL
+        if [[ -z "$PROFILE_EMAIL" ]]; then
+            print_error "Email cannot be empty. Please try again."
+        fi
+    done
+
+    # Get directory path with validation and default value
+    local default_dir="~/repositories/$PROFILE_TYPE"
+    while [[ -z "$PROFILE_DIR" ]]; do
+        read -r -p "Enter directory path for $PROFILE_TYPE repositories (default: $default_dir): " PROFILE_DIR
+        # Use default if empty
+        if [[ -z "$PROFILE_DIR" ]]; then
+            PROFILE_DIR="$default_dir"
+            print_info "Using default directory: $PROFILE_DIR"
+        fi
+    done
 
     # Expand tilde
     PROFILE_DIR="${PROFILE_DIR/#\~/$HOME}"
@@ -245,21 +336,8 @@ setup_profile() {
     local PROFILE_CONFIG="$HOME/.config/git/profiles/$PROFILE_TYPE"
     cp "$TEMPLATE_FILE" "$PROFILE_CONFIG"
 
-    # Replace placeholders
-    case $PROFILE_TYPE in
-        "work")
-            sed -i "s/Your Professional Name/$PROFILE_NAME/g" "$PROFILE_CONFIG"
-            sed -i "s/your.name@company.com/$PROFILE_EMAIL/g" "$PROFILE_CONFIG"
-            ;;
-        "personal")
-            sed -i "s/Your Name/$PROFILE_NAME/g" "$PROFILE_CONFIG"
-            sed -i "s/your.personal@email.com/$PROFILE_EMAIL/g" "$PROFILE_CONFIG"
-            ;;
-        "client")
-            sed -i "s/Your Professional Name/$PROFILE_NAME/g" "$PROFILE_CONFIG"
-            sed -i "s/your.name@client-domain.com/$PROFILE_EMAIL/g" "$PROFILE_CONFIG"
-            ;;
-    esac
+    # Replace placeholders in template with actual values
+    substitute_template_placeholders "$PROFILE_CONFIG" "$PROFILE_NAME" "$PROFILE_EMAIL"
 
     # Update global config with conditional include (avoid duplicates)
     if ! grep -q "gitdir:$PROFILE_DIR/\]" ~/.gitconfig; then
@@ -291,12 +369,62 @@ setup_profile() {
     print_success "$PROFILE_TYPE profile created at: $PROFILE_CONFIG"
     print_info "Profile will be active for repositories in: $PROFILE_DIR"
 
-    # Ask about SSH key generation
+    # Check for existing SSH keys first
     echo ""
-    read -p "Do you want to generate SSH key for $PROFILE_TYPE profile? (y/n): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    local existing_key_path=""
+    local ssh_key_path_ed25519="$HOME/.ssh/id_ed25519_$PROFILE_TYPE"
+    local ssh_key_path_rsa="$HOME/.ssh/id_rsa_$PROFILE_TYPE"
+    
+    if [[ -f "$ssh_key_path_ed25519" ]]; then
+        existing_key_path="$ssh_key_path_ed25519"
+        print_info "Found existing Ed25519 SSH key: $existing_key_path"
+    elif [[ -f "$ssh_key_path_rsa" ]]; then
+        existing_key_path="$ssh_key_path_rsa"
+        print_info "Found existing RSA SSH key: $existing_key_path"
+    fi
+    
+    local generate_ssh=false
+    local ssh_key_path=""
+    
+    if [[ -n "$existing_key_path" ]]; then
+        read -p "Use existing SSH key for $PROFILE_TYPE profile? (Y/n): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            ssh_key_path="$existing_key_path"
+            print_success "Using existing SSH key: $ssh_key_path"
+        else
+            read -p "Generate new SSH key for $PROFILE_TYPE profile? (y/N): " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                generate_ssh=true
+            fi
+        fi
+    else
+        read -p "Generate SSH key for $PROFILE_TYPE profile? (Y/n): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            generate_ssh=true
+        fi
+    fi
+
+    # Generate new key if requested
+    if [[ "$generate_ssh" == true ]]; then
         generate_ssh_key "$PROFILE_TYPE" "$PROFILE_EMAIL"
+        ssh_key_path="$HOME/.ssh/id_ed25519_$PROFILE_TYPE"
+        [[ ! -f "$ssh_key_path" ]] && ssh_key_path="$HOME/.ssh/id_rsa_$PROFILE_TYPE"
+    fi
+    
+    # Add SSH configuration to profile if we have a key
+    if [[ -n "$ssh_key_path" && -f "$ssh_key_path" ]]; then
+        local core_ssh_config=$(generate_core_ssh_config "$PROFILE_TYPE" "$ssh_key_path")
+        if [[ -n "$core_ssh_config" ]]; then
+            echo -e "$core_ssh_config" >> "$PROFILE_CONFIG"
+            print_success "Added SSH configuration via core.sshCommand"
+            echo -e "${CYAN}SSH key will be used automatically with all Git hosting services:${NC}"
+            echo "    • Profile: ${PROFILE_TYPE}"
+            echo "    • Key: ${ssh_key_path}"
+            echo "    • Works with: GitHub, GitLab, Bitbucket, and any other Git host"
+        fi
     fi
 }
 
@@ -402,13 +530,51 @@ test_configuration() {
     print_success "Configuration test completed"
 }
 
+# Set up a custom named client profile
+setup_custom_client_profile() {
+    echo ""
+    print_info "Setting up a custom client profile..."
+    echo ""
+    
+    # Get client profile name with validation loop
+    local profile_name
+    while [[ -z "$profile_name" ]]; do
+        read -p "Enter client profile name (e.g., client-github, client-gitlab): " profile_name
+        if [[ -z "$profile_name" ]]; then
+            print_error "Profile name cannot be empty. Please try again."
+        fi
+    done
+    
+    # Sanitize profile name - allow only letters, numbers, dash, underscore
+    if [[ ! "$profile_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        print_error "Profile name can only contain letters, numbers, dash (-) and underscore (_)"
+        return 1
+    fi
+    
+    # Check if profile already exists
+    local profile_config="$HOME/.config/git/profiles/$profile_name"
+    if [[ -f "$profile_config" ]]; then
+        read -p "Profile '$profile_name' already exists. Overwrite? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_info "Cancelled."
+            return 0
+        fi
+    fi
+    
+    print_success "Creating client profile: $profile_name"
+    
+    # Call setup_profile with the custom name and client template
+    setup_profile "$profile_name" "client"
+}
+
 # Main menu
 main_menu() {
     while true; do
         echo -e "\n${WHITE}What would you like to do?${NC}"
         echo "1) Set up work profile"
         echo "2) Set up personal profile"
-        echo "3) Set up client profile"
+        echo "3) Set up client profile (custom name)"
         echo "4) Clean unused entries"
         echo "5) Test current configuration"
         echo "6) Exit"
@@ -424,7 +590,7 @@ main_menu() {
                 setup_profile "personal"
                 ;;
             3)
-                setup_profile "client"
+                setup_custom_client_profile
                 ;;
             4)
                 clean_unused_entries

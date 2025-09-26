@@ -1,52 +1,106 @@
-# Global Git Configuration with Conditional Includes
-# Place this content in your ~/.gitconfig file
+# Global Git Configuration Template
+# Used for creating ~/.gitconfig with default settings
 
+# ============================================================================
+# USER IDENTITY - Your name and email for commits
+# ============================================================================
 [user]
-    # Default fallback identity (can be overridden by profiles)
-    name = Your Name
-    email = your.email@example.com
+    # Your full name - appears in commit history and git log
+    name = {{USER_NAME}}
+    # Your email address - used for commit attribution and GitHub/GitLab linking
+    email = {{USER_EMAIL}}
 
-[init]
-    defaultBranch = main
-
+# ============================================================================
+# CORE SETTINGS - Basic Git behavior
+# ============================================================================
 [core]
+    # Default editor for commit messages, interactive rebase, etc.
+    # 'code --wait' = VS Code editor, --wait makes git wait until you close the file
     editor = code --wait
+    
+    # Line ending handling (CRLF vs LF)
+    # 'input' = convert CRLF to LF when committing, don't change on checkout
+    # Ensures consistent line endings across different operating systems
     autocrlf = input
+    
+    # Don't track file permission changes (755 -> 644, etc.)
+    # Useful on Windows/WSL where permissions often change unexpectedly
     filemode = false
 
+# ============================================================================
+# PULL STRATEGY - How to handle incoming changes
+# ============================================================================
 [pull]
+    # Use merge instead of rebase when pulling changes
+    # false = creates merge commits (safer for beginners)
+    # true = rewrites history by replaying your commits on top (cleaner but riskier)
     rebase = false
 
+# ============================================================================
+# PUSH SETTINGS - How to send changes to remote
+# ============================================================================
 [push]
+    # Only push to branch with same name on remote (safer)
+    # Prevents accidentally pushing to wrong branch
     default = simple
+    
+    # Automatically create remote branch on first push
+    # No need for 'git push --set-upstream origin branch-name'
     autoSetupRemote = true
 
+# ============================================================================
+# FETCH SETTINGS - How to retrieve remote information
+# ============================================================================
 [fetch]
+    # Automatically remove references to deleted remote branches
+    # Keeps 'git branch -r' output clean and up-to-date
     prune = true
 
+# ============================================================================
+# MERGE TOOLS - Conflict resolution
+# ============================================================================
 [merge]
+    # Use VS Code for resolving merge conflicts
+    # Type 'git mergetool' during conflicts to open visual merge editor
     tool = vscode
 
 [mergetool "vscode"]
+    # Command to launch VS Code merge tool
+    # $MERGED = file with conflict markers that you need to resolve
     cmd = code --wait $MERGED
 
+# ============================================================================
+# DIFF TOOLS - Comparing file changes
+# ============================================================================
 [diff]
+    # Use VS Code for viewing differences between files
+    # Type 'git difftool' instead of 'git diff' for visual comparison
     tool = vscode
 
 [difftool "vscode"]
+    # Command to launch VS Code diff viewer
+    # $LOCAL = old version, $REMOTE = new version
+    # Opens side-by-side comparison in VS Code
     cmd = code --wait --diff $LOCAL $REMOTE
 
+# ============================================================================
+# ALIASES - Shorthand commands for faster workflow
+# ============================================================================
 [alias]
-    # Common aliases available in all profiles
-    st = status
-    co = checkout
-    br = branch
-    ci = commit
-    unstage = reset HEAD --
-    last = log -1 HEAD
-    visual = !gitk
-    lg = log --oneline --graph --decorate --all
-    amend = commit --amend --no-edit
+    # Basic command shortcuts
+    st = status                              # git st = git status (check repo state)
+    co = checkout                            # git co = git checkout (switch branches/restore files)
+    br = branch                             # git br = git branch (list/create branches)
+    ci = commit                             # git ci = git commit (create commit)
     
-# Conditional includes based on directory
-# Profile-specific includes will be added automatically by setup script
+    # Staging area management
+    unstage = reset HEAD --                  # Remove files from staging area (undo git add)
+    
+    # Commit history viewing
+    last = log -1 HEAD                       # Show only the last commit
+    lg = log --oneline --graph --decorate --all  # Pretty commit graph with branches
+    
+    # Commit modification
+    amend = commit --amend --no-edit         # Add changes to last commit without changing message
+
+# Profile-specific conditional includes will be added here automatically

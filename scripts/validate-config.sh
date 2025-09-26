@@ -1,9 +1,7 @@
 #!/bin/bash
 
-# Git Configuration Validation Script
+# Git Configuration Validation Script  
 # Validates Git profile configurations and SSH key setup
-
-set -e
 
 # Colors and emojis
 RED='\033[0;31m'
@@ -19,6 +17,93 @@ WARNING="⚠️ "
 ERROR="❌"
 INFO="ℹ️ "
 GEAR="🔧"
+
+# Skip SSH connectivity tests if requested
+SKIP_SSH=false
+
+# Extract SSH hosts from Git configuration
+extract_ssh_hosts_from_config() {
+    local ssh_hosts=()
+    
+    # Since we use core.sshCommand approach, detect hosts from existing SSH keys and common Git services
+    # Look for profile-specific SSH keys that indicate which services are used
+    if [[ -d ~/.ssh ]]; then
+        for key_file in ~/.ssh/id_*; do
+            [[ -f "$key_file" ]] || continue
+            [[ "$key_file" == *".pub" ]] && continue
+            
+            # Extract profile name from key filename
+            local key_name=$(basename "$key_file")
+            if [[ "$key_name" =~ _([^_]+)$ ]]; then
+                local profile="${BASH_REMATCH[1]}"
+                # Common Git hosting services - test these by default
+                ssh_hosts+=("github.com")
+                ssh_hosts+=("gitlab.com")
+            fi
+        done
+    fi
+    
+    # Also check if there are any URL rewrites in Git config (legacy)
+    if [[ -f ~/.gitconfig ]]; then
+        while IFS= read -r line; do
+            if [[ "$line" =~ git@([^:]+): ]]; then
+                local host="${BASH_REMATCH[1]}"
+                # Resolve SSH config aliases to real hosts  
+                local resolved_host=$(resolve_ssh_host "$host")
+                ssh_hosts+=("$resolved_host")
+            fi
+        done < ~/.gitconfig
+    fi
+    
+    # Check profile files for any URL rewrites (legacy)
+    if [[ -d ~/.config/git/profiles ]]; then
+        for profile_file in ~/.config/git/profiles/*; do
+            # Skip template files and non-regular files
+            if [[ -f "$profile_file" && ! "$(basename "$profile_file")" =~ -template$ ]]; then
+                while IFS= read -r line; do
+                    if [[ "$line" =~ git@([^:]+): ]]; then
+                        local host="${BASH_REMATCH[1]}"
+                        local resolved_host=$(resolve_ssh_host "$host")
+                        ssh_hosts+=("$resolved_host")
+                    fi
+                done < "$profile_file"
+            fi
+        done
+    fi
+    
+    # Remove duplicates and return
+    printf '%s\n' "${ssh_hosts[@]}" | sort -u
+}
+
+# Resolve SSH host aliases to real hostnames
+resolve_ssh_host() {
+    local host="$1"
+    
+    # Check if SSH config exists and has an alias for this host
+    if [[ -f ~/.ssh/config ]]; then
+        local real_host=$(ssh -G "$host" 2>/dev/null | grep "^hostname " | cut -d' ' -f2)
+        if [[ -n "$real_host" && "$real_host" != "$host" ]]; then
+            echo "$real_host"
+            return
+        fi
+    fi
+    
+    # If it looks like a custom alias (contains dash/underscore after domain), warn about it
+    if [[ "$host" =~ ^[a-z0-9.-]+\.[a-z]{2,}-[a-zA-Z0-9_-]+$ ]] || [[ "$host" =~ -[a-zA-Z0-9_-]+$ ]]; then
+        # This looks like a custom SSH alias, check if it resolves
+        if ! nslookup "$host" &>/dev/null && ! host "$host" &>/dev/null; then
+            print_warning "Host '$host' appears to be an SSH alias but doesn't resolve. Check ~/.ssh/config"
+            # Try to extract base domain
+            local base_domain=$(echo "$host" | sed 's/-[^.]*$//')
+            if [[ "$base_domain" =~ \.(com|org|net|io)$ ]]; then
+                echo "$base_domain"
+                return
+            fi
+        fi
+    fi
+    
+    echo "$host"
+}
 
 print_header() {
     echo -e "\n${CYAN}════════════════════════════════════════════════════════════════${NC}"
@@ -67,6 +152,8 @@ fail_check() {
 
 # Check if Git is properly configured
 check_git_installation() {
+    echo -e "${WHITE}Checking Git Installation:${NC}"
+    
     increment_check
     if command -v git &>/dev/null; then
         GIT_VERSION=$(git --version | cut -d' ' -f3)
@@ -78,10 +165,14 @@ check_git_installation() {
 
     # Check Git version supports conditional includes (2.13+)
     increment_check
-    if git config --help | grep -q "includeIf" 2>/dev/null; then
+    local git_major git_minor
+    git_major=$(echo "$GIT_VERSION" | cut -d. -f1)
+    git_minor=$(echo "$GIT_VERSION" | cut -d. -f2)
+    
+    if [[ $git_major -gt 2 ]] || [[ $git_major -eq 2 && $git_minor -ge 13 ]]; then
         pass_check "Git version supports conditional includes"
     else
-        fail_check "Git version too old for conditional includes (need 2.13+)"
+        fail_check "Git version too old for conditional includes (need 2.13+, have $GIT_VERSION)"
     fi
 }
 
@@ -120,43 +211,54 @@ check_conditional_includes() {
     echo -e "\n${WHITE}Checking Conditional Includes:${NC}"
 
     increment_check
-    if grep -q "includeIf" ~/.gitconfig; then
+    if grep -q "includeIf" ~/.gitconfig 2>/dev/null; then
         pass_check "Conditional includes found in .gitconfig"
 
         # List all conditional includes
         echo -e "${CYAN}  Configured profiles:${NC}"
+        
+        # Read conditional includes properly
+        local in_include_section=false
+        local current_dir=""
+        local current_profile=""
+        
         while IFS= read -r line; do
-            if [[ "$line" =~ ^\[includeIf.*gitdir:.*\] ]] && [[ ! "$line" =~ ^# ]]; then
-                dir_path=$(echo "$line" | sed 's/.*gitdir://;s/".*//' | sed 's/\].*//')
-                # Read next non-empty line for path
-                read -r profile_line
-                while [[ -z "$profile_line" || "$profile_line" =~ ^[[:space:]]*# ]]; do
-                    read -r profile_line
-                done
-                profile_path=$(echo "$profile_line" | sed 's/.*path[[:space:]]*=[[:space:]]*//' | tr -d '"')
-                echo -e "    ${BLUE}Directory:${NC} $dir_path"
-                echo -e "    ${BLUE}Profile:${NC} $profile_path"
+            # Remove leading/trailing whitespace
+            line=$(echo "$line" | xargs)
+            
+            if [[ "$line" =~ ^\[includeIf.*gitdir: ]]; then
+                current_dir=$(echo "$line" | sed 's/.*gitdir://;s/"].*//;s/\].*//')
+                in_include_section=true
+            elif [[ "$in_include_section" == true && "$line" =~ ^path[[:space:]]*= ]]; then
+                current_profile=$(echo "$line" | sed 's/.*path[[:space:]]*=[[:space:]]*//' | tr -d '"')
+                
+                echo -e "    ${BLUE}Directory:${NC} $current_dir"
+                echo -e "    ${BLUE}Profile:${NC} $current_profile"
 
                 # Check if directory exists (expand tilde)
                 increment_check
-                expanded_dir_path="${dir_path/#\~/$HOME}"
+                local expanded_dir_path="${current_dir/#\~/$HOME}"
                 if [[ -d "$expanded_dir_path" ]]; then
-                    pass_check "Directory exists: $dir_path"
+                    pass_check "Directory exists: $current_dir"
                 else
-                    warn_check "Directory does not exist: $dir_path"
+                    warn_check "Directory does not exist: $current_dir"
                 fi
 
                 # Check if profile file exists (expand tilde)
                 increment_check
-                expanded_profile_path="${profile_path/#\~/$HOME}"
+                local expanded_profile_path="${current_profile/#\~/$HOME}"
                 if [[ -f "$expanded_profile_path" ]]; then
-                    pass_check "Profile file exists: $profile_path"
+                    pass_check "Profile file exists: $current_profile"
                 else
-                    fail_check "Profile file missing: $profile_path"
+                    fail_check "Profile file missing: $current_profile"
                 fi
                 echo ""
+                
+                in_include_section=false
+            elif [[ "$line" =~ ^\[ ]]; then
+                in_include_section=false
             fi
-        done <~/.gitconfig
+        done < ~/.gitconfig
     else
         warn_check "No conditional includes found"
     fi
@@ -174,8 +276,8 @@ check_profiles() {
 
                 # Check user.name
                 increment_check
-                if grep -q "name =" "$profile_file"; then
-                    profile_name_val=$(grep "name =" "$profile_file" | head -1 | cut -d'=' -f2 | xargs)
+                if grep -q "^[[:space:]]*name[[:space:]]*=" "$profile_file"; then
+                    local profile_name_val=$(grep "^[[:space:]]*name[[:space:]]*=" "$profile_file" | head -1 | cut -d'=' -f2 | xargs)
                     pass_check "Name configured: '$profile_name_val'"
                 else
                     fail_check "Name not configured in profile"
@@ -183,8 +285,8 @@ check_profiles() {
 
                 # Check user.email
                 increment_check
-                if grep -q "email =" "$profile_file"; then
-                    profile_email=$(grep "email =" "$profile_file" | head -1 | cut -d'=' -f2 | xargs)
+                if grep -q "^[[:space:]]*email[[:space:]]*=" "$profile_file"; then
+                    local profile_email=$(grep "^[[:space:]]*email[[:space:]]*=" "$profile_file" | head -1 | cut -d'=' -f2 | xargs)
                     pass_check "Email configured: '$profile_email'"
 
                     # Validate email format
@@ -199,14 +301,16 @@ check_profiles() {
                 fi
 
                 # Check SSH configuration (only if configured)
-                if grep -q "sshCommand" "$profile_file"; then
+                local has_ssh_config=false
+                if grep -q "^[[:space:]]*sshCommand" "$profile_file"; then
                     increment_check
-                    ssh_key_path=$(grep "sshCommand" "$profile_file" | sed 's/.*-i //;s/ .*//')
+                    local ssh_key_path=$(grep "^[[:space:]]*sshCommand" "$profile_file" | sed 's/.*-i //;s/ .*//' | head -1)
                     pass_check "SSH key configured: '$ssh_key_path'"
+                    has_ssh_config=true
 
                     # Check if SSH key exists (expand tilde)
                     increment_check
-                    expanded_ssh_key_path="${ssh_key_path/#\~/$HOME}"
+                    local expanded_ssh_key_path="${ssh_key_path/#\~/$HOME}"
                     if [[ -f "$expanded_ssh_key_path" ]]; then
                         pass_check "SSH private key exists: $ssh_key_path"
                     else
@@ -220,15 +324,26 @@ check_profiles() {
                     else
                         warn_check "SSH public key not found: ${ssh_key_path}.pub"
                     fi
-                else
-                    print_info "No SSH key configured (skipped by user)"
+                fi
+                
+                # Check for URL rewrites (alternative SSH configuration)
+                if grep -q "^\[url.*git@.*:\]" "$profile_file"; then
+                    if [[ "$has_ssh_config" == false ]]; then
+                        increment_check
+                        pass_check "SSH URL rewrite configured (uses global SSH config)"
+                        has_ssh_config=true
+                    fi
+                fi
+                
+                if [[ "$has_ssh_config" == false ]]; then
+                    print_info "No SSH configuration found in profile (will use global SSH settings)"
                 fi
 
                 # Check GPG signing (only if actually enabled, not commented)
                 if grep -q "^[[:space:]]*gpgsign[[:space:]]*=[[:space:]]*true" "$profile_file"; then
                     increment_check
                     if grep -q "^[[:space:]]*signingkey[[:space:]]*=" "$profile_file"; then
-                        signing_key=$(grep "^[[:space:]]*signingkey[[:space:]]*=" "$profile_file" | cut -d'=' -f2 | xargs)
+                        local signing_key=$(grep "^[[:space:]]*signingkey[[:space:]]*=" "$profile_file" | head -1 | cut -d'=' -f2 | xargs)
                         pass_check "GPG signing enabled with key: $signing_key"
                     else
                         warn_check "GPG signing enabled but no signing key specified"
@@ -248,67 +363,103 @@ test_profile_switching() {
     echo -e "\n${WHITE}Testing Profile Switching:${NC}"
 
     # Find conditional include directories from .gitconfig
-    if [[ -f ~/.gitconfig ]] && grep -q "includeIf" ~/.gitconfig; then
-        grep "includeIf" ~/.gitconfig | grep -v "^#" | while read -r line; do
-            dir_path=$(echo "$line" | sed 's/.*gitdir://;s/".*//' | sed 's/\].*//')
-            profile_line=$(grep -A1 "$line" ~/.gitconfig | tail -1)
-            profile_path=$(echo "$profile_line" | sed 's/.*path = //' | tr -d '"')
+    if [[ -f ~/.gitconfig ]] && grep -q "includeIf" ~/.gitconfig 2>/dev/null; then
+        local in_include_section=false
+        local current_dir=""
+        local current_profile=""
+        
+        while IFS= read -r line; do
+            line=$(echo "$line" | xargs)
+            
+            if [[ "$line" =~ ^\[includeIf.*gitdir: ]]; then
+                current_dir=$(echo "$line" | sed 's/.*gitdir://;s/"].*//;s/\].*//')
+                in_include_section=true
+            elif [[ "$in_include_section" == true && "$line" =~ ^path[[:space:]]*= ]]; then
+                current_profile=$(echo "$line" | sed 's/.*path[[:space:]]*=[[:space:]]*//' | tr -d '"')
+                
+                # Expand tilde for directory testing
+                local expanded_dir_path="${current_dir/#\~/$HOME}"
+                if [[ -d "$expanded_dir_path" ]]; then
+                    echo -e "\n${CYAN}Testing directory: $current_dir${NC}"
 
-            # Expand tilde for directory testing
-            expanded_dir_path="${dir_path/#\~/$HOME}"
-            if [[ -d "$expanded_dir_path" ]]; then
-                echo -e "\n${CYAN}Testing directory: $dir_path${NC}"
+                    # Create a temporary test directory
+                    local test_dir="$expanded_dir_path/git-config-test-$$"
+                    mkdir -p "$test_dir"
+                    
+                    (
+                        cd "$test_dir"
 
-                # Create a temporary test directory
-                test_dir="$expanded_dir_path/git-config-test-$$"
-                mkdir -p "$test_dir"
-                cd "$test_dir"
+                        # Initialize a git repo to test configuration
+                        git init >/dev/null 2>&1
 
-                # Initialize a git repo to test configuration
-                git init >/dev/null 2>&1
+                        # Test user.name
+                        increment_check
+                        local current_name=$(git config user.name 2>/dev/null || echo "")
+                        if [[ -n "$current_name" ]]; then
+                            pass_check "Profile active - Name: '$current_name'"
+                        else
+                            fail_check "No name configured in this directory"
+                        fi
 
-                # Test user.name
-                increment_check
-                current_name=$(git config user.name 2>/dev/null || echo "")
-                if [[ -n "$current_name" ]]; then
-                    pass_check "Profile active - Name: '$current_name'"
-                else
-                    fail_check "No name configured in this directory"
+                        # Test user.email
+                        increment_check
+                        local current_email=$(git config user.email 2>/dev/null || echo "")
+                        if [[ -n "$current_email" ]]; then
+                            pass_check "Profile active - Email: '$current_email'"
+                        else
+                            fail_check "No email configured in this directory"
+                        fi
+                    )
+
+                    # Cleanup
+                    rm -rf "$test_dir" 2>/dev/null || true
                 fi
-
-                # Test user.email
-                increment_check
-                current_email=$(git config user.email 2>/dev/null || echo "")
-                if [[ -n "$current_email" ]]; then
-                    pass_check "Profile active - Email: '$current_email'"
-                else
-                    fail_check "No email configured in this directory"
-                fi
-
-                # Cleanup
-                cd - >/dev/null
-                rm -rf "$test_dir"
+                
+                in_include_section=false
+            elif [[ "$line" =~ ^\[ ]]; then
+                in_include_section=false
             fi
-        done
+        done < ~/.gitconfig
     fi
 }
 
 # Check SSH connectivity
 check_ssh_connectivity() {
+    if [[ "$SKIP_SSH" == true ]]; then
+        print_info "SSH connectivity tests skipped (--quick mode)"
+        return
+    fi
+
     echo -e "\n${WHITE}Checking SSH Connectivity:${NC}"
 
-    # Test common Git hosting services
-    services=("github.com" "gitlab.com" "bitbucket.org")
+    # Get SSH hosts from configuration
+    local ssh_hosts
+    readarray -t ssh_hosts < <(extract_ssh_hosts_from_config)
+    
+    if [[ ${#ssh_hosts[@]} -eq 0 ]]; then
+        print_info "No SSH hosts configured in Git profiles - skipping SSH connectivity tests"
+        return
+    fi
+    
+    echo -e "${CYAN}  Testing SSH connectivity for configured hosts:${NC}"
 
-    for service in "${services[@]}"; do
+    for service in "${ssh_hosts[@]}"; do
+        [[ -z "$service" ]] && continue
+        
+        echo -e "    ${BLUE}Testing:${NC} $service"
         increment_check
-        if ssh -T "git@$service" -o ConnectTimeout=5 -o StrictHostKeyChecking=no 2>&1 | grep -q "successfully authenticated\|You've successfully authenticated"; then
+        
+        # Quick timeout test
+        if timeout 5 ssh -T "git@$service" -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes 2>&1 | grep -q "successfully authenticated\|You've successfully authenticated"; then
             pass_check "SSH connection to $service: OK"
         else
-            # Try to determine if it's a key issue or service issue
-            if timeout 5 ssh -T "git@$service" -o ConnectTimeout=5 2>&1 | grep -q "Permission denied"; then
+            # Check if it's a key issue or connectivity issue
+            local ssh_output
+            ssh_output=$(timeout 5 ssh -T "git@$service" -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes 2>&1 || true)
+            
+            if echo "$ssh_output" | grep -q "Permission denied"; then
                 warn_check "SSH connection to $service: Authentication failed (check SSH keys)"
-            elif timeout 5 nc -z "$service" 22 2>/dev/null; then
+            elif timeout 3 nc -z "$service" 22 2>/dev/null; then
                 warn_check "SSH connection to $service: Service reachable but authentication failed"
             else
                 print_info "SSH connection to $service: Not tested (service unreachable or not configured)"
@@ -323,7 +474,10 @@ generate_summary() {
     echo -e "${WHITE}                    VALIDATION SUMMARY${NC}"
     echo -e "${WHITE}════════════════════════════════════════════════════════════════${NC}"
 
-    SUCCESS_RATE=$((PASSED_CHECKS * 100 / TOTAL_CHECKS))
+    local SUCCESS_RATE=0
+    if [[ $TOTAL_CHECKS -gt 0 ]]; then
+        SUCCESS_RATE=$((PASSED_CHECKS * 100 / TOTAL_CHECKS))
+    fi
 
     echo -e "${CYAN}Total Checks:${NC} $TOTAL_CHECKS"
     echo -e "${GREEN}Passed:${NC} $PASSED_CHECKS"

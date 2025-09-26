@@ -307,8 +307,8 @@ Host github.com-personal
 # Run validation script
 ./scripts/validate-config.sh
 
-# Quick profile test
-./scripts/switch-profile.sh --test
+# Check current profile status
+cd /path/to/repository && git config user.email
 ```
 
 ### Git Configuration Debug
