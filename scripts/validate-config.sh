@@ -387,7 +387,7 @@ test_profile_switching() {
                     mkdir -p "$test_dir"
                     
                     (
-                        cd "$test_dir"
+                        cd "$test_dir" || exit 1
 
                         # Initialize a git repo to test configuration
                         git init >/dev/null 2>&1

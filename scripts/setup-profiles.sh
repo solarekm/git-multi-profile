@@ -316,13 +316,13 @@ setup_profile() {
     done
 
     # Get directory path with validation and default value
-    local default_dir="~/repositories/$PROFILE_TYPE"
+    local default_dir="$HOME/repositories/$PROFILE_TYPE"
     while [[ -z "$PROFILE_DIR" ]]; do
-        read -r -p "Enter directory path for $PROFILE_TYPE repositories (default: $default_dir): " PROFILE_DIR
+        read -r -p "Enter directory path for $PROFILE_TYPE repositories (default: ~/repositories/$PROFILE_TYPE): " PROFILE_DIR
         # Use default if empty
         if [[ -z "$PROFILE_DIR" ]]; then
             PROFILE_DIR="$default_dir"
-            print_info "Using default directory: $PROFILE_DIR"
+            print_info "Using default directory: ~/repositories/$PROFILE_TYPE"
         fi
     done
 
@@ -416,7 +416,8 @@ setup_profile() {
     
     # Add SSH configuration to profile if we have a key
     if [[ -n "$ssh_key_path" && -f "$ssh_key_path" ]]; then
-        local core_ssh_config=$(generate_core_ssh_config "$PROFILE_TYPE" "$ssh_key_path")
+        local core_ssh_config
+        core_ssh_config=$(generate_core_ssh_config "$PROFILE_TYPE" "$ssh_key_path")
         if [[ -n "$core_ssh_config" ]]; then
             echo -e "$core_ssh_config" >> "$PROFILE_CONFIG"
             print_success "Added SSH configuration via core.sshCommand"
@@ -539,7 +540,7 @@ setup_custom_client_profile() {
     # Get client profile name with validation loop
     local profile_name
     while [[ -z "$profile_name" ]]; do
-        read -p "Enter client profile name (e.g., client-github, client-gitlab): " profile_name
+        read -r -p "Enter client profile name (e.g., client-github, client-gitlab): " profile_name
         if [[ -z "$profile_name" ]]; then
             print_error "Profile name cannot be empty. Please try again."
         fi
