@@ -295,6 +295,11 @@ setup_profile() {
     local TEMPLATE_NAME=${2:-$PROFILE_TYPE} # Use second parameter or fall back to profile name
     local TEMPLATE_FILE="$PROJECT_DIR/configs/profiles/${TEMPLATE_NAME}-template"
 
+    # Clear global variables to ensure fresh input for each profile
+    PROFILE_NAME=""
+    PROFILE_EMAIL=""
+    PROFILE_DIR=""
+
     print_step "Setting up $PROFILE_TYPE profile..."
 
     echo -e "${WHITE}$PROFILE_TYPE Profile Configuration:${NC}"
