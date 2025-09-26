@@ -30,8 +30,9 @@ configs/profiles/
 **Usage:** Copied to `~/.gitconfig` during initial setup with user's default name/email.
 
 **Template Variables:**
-- `Your Name` → User's default name
-- `your.email@example.com` → User's default email
+- `{{USER_NAME}}` → User's default name (replaced during setup)
+- `{{USER_EMAIL}}` → User's default email (replaced during setup)
+- `{{GPG_KEY_ID}}` → GPG signing key ID (optional, commented by default)
 
 ### 2. Work Profile Template (`work-template`)
 
@@ -49,8 +50,9 @@ configs/profiles/
 - Professional tag and branch configurations
 
 **Template Variables:**
-- `Your Professional Name` → User's work name
-- `your.name@company.com` → User's work email
+- `{{USER_NAME}}` → User's work name (replaced during setup)
+- `{{USER_EMAIL}}` → User's work email (replaced during setup)
+- `{{GPG_KEY_ID}}` → GPG signing key ID (optional)
 
 **Dynamic Content:**
 - SSH configuration added only if user generates SSH key
@@ -73,8 +75,9 @@ configs/profiles/
 - Personal workflow configurations (push.default, branch.autoSetupRebase)
 
 **Template Variables:**
-- `Your Name` → User's personal name
-- `your.personal@email.com` → User's personal email
+- `{{USER_NAME}}` → User's personal name (replaced during setup)  
+- `{{USER_EMAIL}}` → User's personal email (replaced during setup)
+- `{{GPG_KEY_ID}}` → GPG signing key ID (optional)
 
 **Dynamic Content:**
 - SSH configuration added only if user generates SSH key
@@ -93,8 +96,9 @@ configs/profiles/
 - URL rewriting placeholder for client repositories
 
 **Template Variables:**
-- `Your Professional Name` → User's name for client work
-- `your.name@client-domain.com` → User's client-specific email
+- `{{USER_NAME}}` → User's name for client work (replaced during setup)
+- `{{USER_EMAIL}}` → User's client-specific email (replaced during setup) 
+- `{{GPG_KEY_ID}}` → GPG signing key ID (optional)
 - `CLIENT_SPECIFIC_GPG_KEY_ID` → Client's GPG key if required
 - `client_name` → Actual client identifier
 
@@ -178,8 +182,8 @@ The `validate-config.sh` script checks:
 
 1. User runs setup script, chooses "work profile"
 2. Script copies `work-template` to `~/.config/git/profiles/work`
-3. Replaces `Your Professional Name` with user input
-4. Replaces `your.name@company.com` with user input
+3. Replaces `{{USER_NAME}}` placeholder with user input
+4. Replaces `{{USER_EMAIL}}` placeholder with user input
 5. If SSH key generated, adds SSH configuration
 6. Adds conditional include to `~/.gitconfig`
 

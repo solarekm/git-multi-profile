@@ -213,7 +213,9 @@ scripts/
 
 3. **Emergency profile switching:**
    ```bash
-   ./scripts/switch-profile.sh
+   # Use the setup wizard menu option 5
+   ./scripts/setup-profiles.sh
+   # Then select: "5. Test current configuration"
    ```
 
 ## Script Dependencies
