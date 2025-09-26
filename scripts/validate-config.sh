@@ -18,8 +18,10 @@ ERROR="❌"
 INFO="ℹ️ "
 GEAR="🔧"
 
-# Skip SSH connectivity tests if requested
+# Variables for control
 SKIP_SSH=false
+DEBUG_MODE=false
+PASSED=0
 
 # Safe trim function that doesn't have issues with quotes like xargs
 trim() {
@@ -74,6 +76,8 @@ extract_hosts_from_repositories() {
     local hosts=()
     local checked_dirs=()
 
+    debug_print "Starting host detection from Git repositories..."
+
     # Check directories that are configured in conditional includes
     if [[ -f ~/.gitconfig ]]; then
         while IFS= read -r line; do
@@ -87,69 +91,97 @@ extract_hosts_from_repositories() {
                 # If directory exists, scan for Git repositories
                 if [[ -d "$dir_pattern" ]]; then
                     checked_dirs+=("$dir_pattern")
+                    debug_print "Scanning directory: $dir_pattern"
 
                     # Find all Git repositories in this directory tree
+                    local repo_count=0
                     while IFS= read -r -d '' git_dir; do
                         local repo_dir="${git_dir%/.git}"
 
                         # Skip if not a valid repository
                         [[ -d "$git_dir" ]] || continue
+                        ((repo_count++))
 
                         # Get remote URLs from this repository
+                        debug_print "Found Git repository: $repo_dir"
                         local remote_urls
                         if ! remote_urls=$(cd "$repo_dir" && git remote get-url --all origin 2>/dev/null); then
                             remote_urls=""
                         fi
+                        debug_print "Remote URLs: $remote_urls"
 
                         # Extract hosts from remote URLs (both SSH and HTTPS)
                         while IFS= read -r url; do
                             [[ -n "$url" ]] || continue
 
-                            if [[ "$url" =~ ^git@([^:]+): ]]; then
-                                # SSH format: git@hostname:user/repo
+                            if [[ "$url" =~ ^git@([^:/]+)(:([0-9]+))?[:/] ]]; then
+                                # SSH format: git@hostname:port/repo or git@hostname:/repo
                                 local host="${BASH_REMATCH[1]}"
+                                local port="${BASH_REMATCH[3]}"
                                 local resolved_host
                                 resolved_host=$(resolve_ssh_host "$host")
-                                hosts+=("$resolved_host")
+                                if [[ -n "$port" && "$port" != "22" ]]; then
+                                    # Include port in host for non-standard ports
+                                    debug_print "Detected SSH host with port: $resolved_host:$port"
+                                    hosts+=("$resolved_host:$port")
+                                else
+                                    debug_print "Detected SSH host: $resolved_host"
+                                    hosts+=("$resolved_host")
+                                fi
                             elif [[ "$url" =~ ^ssh://git@([^/]+) ]]; then
-                                # SSH URL format: ssh://git@hostname/user/repo
-                                local host="${BASH_REMATCH[1]}"
+                                # SSH URL format: ssh://git@hostname:port/user/repo
+                                local host_port="${BASH_REMATCH[1]}"
                                 local resolved_host
-                                resolved_host=$(resolve_ssh_host "$host")
+                                resolved_host=$(resolve_ssh_host "$host_port")
                                 hosts+=("$resolved_host")
                             elif [[ "$url" =~ ^https?://([^/]+) ]]; then
                                 # HTTPS format: https://hostname/user/repo
                                 local host="${BASH_REMATCH[1]}"
+                                debug_print "Detected HTTPS host: $host"
                                 hosts+=("$host")
                             fi
                         done <<<"$remote_urls"
 
                     done < <(find "$dir_pattern" -name ".git" -type d -print0 2>/dev/null)
+                    debug_print "Found $repo_count Git repositories in $dir_pattern"
+                else
+                    debug_print "Directory does not exist: $dir_pattern"
                 fi
             fi
         done <~/.gitconfig
     fi
 
     # If no repositories found with remotes, fall back to common Git hosting services
+    debug_print "Found ${#hosts[@]} hosts from repositories: ${hosts[*]}"
     if [[ ${#hosts[@]} -eq 0 ]]; then
+        debug_print "No hosts found in repositories, checking fallback..."
         # Check if any SSH keys exist that suggest Git hosting usage
         if [[ -d ~/.ssh ]]; then
+            debug_print "$HOME/.ssh directory exists, checking for Git SSH keys..."
             local has_git_keys=false
             for key_file in ~/.ssh/id_*; do
                 [[ -f "$key_file" ]] || continue
                 [[ "$key_file" == *".pub" ]] && continue
+                debug_print "Found SSH key: $key_file"
                 has_git_keys=true
                 break
             done
 
             # If SSH keys exist, include common Git hosts as fallback
             if [[ "$has_git_keys" == true ]]; then
+                debug_print "Using SSH key fallback - adding common Git hosts"
                 hosts+=("github.com")
                 hosts+=("gitlab.com")
                 # Add common enterprise hosts
                 hosts+=("bitbucket.org")
+            else
+                debug_print "No SSH keys found - no fallback hosts added"
             fi
+        else
+            debug_print "$HOME/.ssh directory does not exist - no fallback"
         fi
+    else
+        debug_print "Hosts found from repositories - no fallback needed"
     fi
 
     # Remove duplicates and return
@@ -172,6 +204,12 @@ print_warning() {
 
 print_error() {
     echo -e "${RED}${ERROR} $1${NC}"
+}
+
+debug_print() {
+    if [[ "$DEBUG_MODE" == true ]]; then
+        echo -e "${GRAY}[DEBUG] $1${NC}" >&2
+    fi
 }
 
 print_info() {
@@ -509,17 +547,28 @@ check_ssh_connectivity() {
         echo -e "    ${BLUE}Testing:${NC} $service"
         increment_check
 
+        # Parse host and port
+        local ssh_host ssh_port ssh_args=()
+        if [[ "$service" =~ ^(.+):([0-9]+)$ ]]; then
+            ssh_host="${BASH_REMATCH[1]}"
+            ssh_port="${BASH_REMATCH[2]}"
+            ssh_args+=("-p" "$ssh_port")
+        else
+            ssh_host="$service"
+            ssh_port="22"
+        fi
+
         # Quick timeout test
-        if timeout 5 ssh -T "git@$service" -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes 2>&1 | grep -q "successfully authenticated\|You've successfully authenticated"; then
+        if timeout 5 ssh -T "${ssh_args[@]}" "git@$ssh_host" -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes 2>&1 | grep -q "successfully authenticated\|You've successfully authenticated"; then
             pass_check "SSH connection to $service: OK"
         else
             # Check if it's a key issue or connectivity issue
             local ssh_output
-            ssh_output=$(timeout 5 ssh -T "git@$service" -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes 2>&1 || true)
+            ssh_output=$(timeout 5 ssh -T "${ssh_args[@]}" "git@$ssh_host" -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes 2>&1 || true)
 
             if echo "$ssh_output" | grep -q "Permission denied"; then
                 warn_check "SSH connection to $service: Authentication failed (check SSH keys)"
-            elif timeout 3 nc -z "$service" 22 2>/dev/null; then
+            elif timeout 3 nc -z "$ssh_host" "$ssh_port" 2>/dev/null; then
                 warn_check "SSH connection to $service: Service reachable but authentication failed"
             else
                 print_info "SSH connection to $service: Not tested (service unreachable or not configured)"
@@ -583,6 +632,7 @@ show_help() {
     echo "Options:"
     echo "  -h, --help     Show this help message"
     echo "  -q, --quick    Quick validation (skip SSH connectivity tests)"
+    echo "  -d, --debug    Debug mode (show detailed host detection info)"
     echo ""
     echo "This script validates your Git multi-profile configuration."
 }
@@ -595,6 +645,10 @@ case "${1:-}" in
         ;;
     -q | --quick)
         SKIP_SSH=true
+        main
+        ;;
+    -d | --debug)
+        DEBUG_MODE=true
         main
         ;;
     "")
