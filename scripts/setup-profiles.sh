@@ -492,8 +492,8 @@ clean_backup_profiles() {
     local PROFILES_DIR="$HOME/.config/git/profiles"
     local backup_files
     
-    # Find backup files
-    backup_files=($(find "$PROFILES_DIR" -name "*.backup.*" -type f 2>/dev/null || true))
+    # Find backup files (using mapfile for better ShellCheck compliance)
+    mapfile -t backup_files < <(find "$PROFILES_DIR" -name "*.backup.*" -type f 2>/dev/null || true)
     
     if [[ ${#backup_files[@]} -eq 0 ]]; then
         print_success "No backup profile files found"

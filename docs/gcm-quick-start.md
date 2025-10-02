@@ -6,7 +6,7 @@
 
 ```bash
 # Przejdź do katalogu git-multi-profile
-cd ~/repositories/solarekm/git-multi-profile
+cd git-multi-profile
 
 # Podgląd zmian (bez wykonywania)
 ./scripts/setup-gcm-wsl.sh --dry-run
