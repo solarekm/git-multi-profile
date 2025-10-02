@@ -98,7 +98,7 @@ git-credential-manager erase
 # Check version
 git-credential-manager --version
 
-# Test działania w aktualnym katalogu
+# Test operation in current directory
 git ls-remote
 ```
 
@@ -106,7 +106,7 @@ git ls-remote
 
 ## 🐛 Troubleshooting
 
-### Problem: Przeglądarka nie otwiera się
+### Problem: Browser doesn't open
 
 # Set browser for WSL
 export BROWSER="/mnt/c/Program Files/Google/Chrome/Application/chrome.exe"

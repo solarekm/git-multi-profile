@@ -49,7 +49,7 @@ which git-credential-manager
 # /usr/local/bin/git-credential-manager
 # /usr/bin/git-credential-manager
 
-# Zapisz ścieżkę - będzie potrzebna w konfiguracji
+# Save the path - it will be needed in configuration
 GCM_PATH=$(which git-credential-manager)
 echo "GCM Path: $GCM_PATH"
 ```
