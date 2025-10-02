@@ -255,6 +255,18 @@ git-credential-manager --version
 # Na aktualną ścieżkę z `which`
 ```
 
+### Problem 1a: "No credential store has been selected"
+
+```bash
+# Skonfiguruj credential store (wymagane w GCM 2.6+)
+git config --global credential.credentialStore cache
+
+# Alternatywnie inne opcje:
+# git config --global credential.credentialStore secretservice  # wymaga libsecret-1
+# git config --global credential.credentialStore plaintext      # niezabezpieczony
+# git config --global credential.credentialStore gpg           # wymaga pass + GPG
+```
+
 ### Problem 2: "Browser nie otwiera się"
 
 ```bash

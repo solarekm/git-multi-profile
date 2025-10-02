@@ -485,6 +485,42 @@ clean_unused_entries() {
     fi
 }
 
+# Clean backup profile files
+clean_backup_profiles() {
+    print_step "Cleaning backup profile files..."
+    
+    local PROFILES_DIR="$HOME/.config/git/profiles"
+    local backup_files
+    
+    # Find backup files
+    backup_files=($(find "$PROFILES_DIR" -name "*.backup.*" -type f 2>/dev/null || true))
+    
+    if [[ ${#backup_files[@]} -eq 0 ]]; then
+        print_success "No backup profile files found"
+        return 0
+    fi
+    
+    print_info "Found ${#backup_files[@]} backup profile files:"
+    for file in "${backup_files[@]}"; do
+        echo "  - $(basename "$file")"
+    done
+    
+    echo ""
+    read -p "Do you want to remove these backup files? (y/N): " -r
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        for file in "${backup_files[@]}"; do
+            if rm "$file" 2>/dev/null; then
+                print_success "Removed: $(basename "$file")"
+            else
+                print_warning "Failed to remove: $(basename "$file")"
+            fi
+        done
+        print_success "Backup cleanup completed"
+    else
+        print_info "Backup files kept"
+    fi
+}
+
 # Test configuration
 test_configuration() {
     print_step "Testing configuration..."
@@ -582,11 +618,12 @@ main_menu() {
         echo "2) Set up personal profile"
         echo "3) Set up client profile (custom name)"
         echo "4) Clean unused entries"
-        echo "5) Test current configuration"
-        echo "6) Exit"
+        echo "5) Clean backup profile files"
+        echo "6) Test current configuration"
+        echo "7) Exit"
         echo ""
 
-        read -r -p "Choose an option (1-6): " choice
+        read -r -p "Choose an option (1-7): " choice
 
         case $choice in
             1)
@@ -602,14 +639,17 @@ main_menu() {
                 clean_unused_entries
                 ;;
             5)
-                test_configuration
+                clean_backup_profiles
                 ;;
             6)
+                test_configuration
+                ;;
+            7)
                 print_success "Setup completed! ${ROCKET}"
                 break
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-6."
+                print_error "Invalid option. Please choose 1-7."
                 ;;
         esac
     done

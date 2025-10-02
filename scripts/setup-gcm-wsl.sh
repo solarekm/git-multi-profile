@@ -194,6 +194,7 @@ configure_gcm_global() {
         "credential.gitHubAuthModes browser" 
         "credential.gitLabAuthModes browser"
         "credential.autoDetectTimeout 0"
+        "credential.credentialStore cache"
     )
 
     for setting in "${settings[@]}"; do
@@ -358,6 +359,7 @@ show_summary() {
         "credential.guiPrompt"
         "credential.gitHubAuthModes" 
         "credential.gitLabAuthModes"
+        "credential.credentialStore"
     )
     
     for config in "${git_configs[@]}"; do
@@ -372,9 +374,11 @@ show_summary() {
     echo -e "2. ${YELLOW}Browser will open${NC} for OAuth authentication"  
     echo -e "3. ${YELLOW}Tokens are stored${NC} securely by GCM"
     echo -e "\n${WHITE}Useful commands:${NC}"
-    echo -e "  ${CYAN}git-credential-manager status${NC}     # Check auth status"
-    echo -e "  ${CYAN}git-credential-manager logout${NC}     # Logout from all services"
+    echo -e "  ${CYAN}git-credential-manager diagnose${NC}   # Check configuration"
     echo -e "  ${CYAN}git-credential-manager erase${NC}      # Remove stored credentials"
+    echo -e "  ${CYAN}./scripts/setup-profiles.sh${NC}       # Manage Git profiles"
+    echo -e "\n${WHITE}Profile management:${NC}"
+    echo -e "  Remove backup files: ${CYAN}rm ~/.config/git/profiles/*.backup.*${NC}"
 }
 
 # Main function
