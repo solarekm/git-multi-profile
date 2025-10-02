@@ -8,11 +8,14 @@ All scripts are located in the `scripts/` directory:
 
 ```
 scripts/
-├── setup-profiles.sh      # Interactive profile setup wizard (includes SSH key generation)
-└── validate-config.sh     # Configuration validation tool
+├── setup-profiles.sh           # Interactive profile setup wizard
+├── setup-gcm-wsl.sh           # Git Credential Manager automated setup for WSL  
+├── check-gcm-status.sh        # GCM status checker and diagnostics tool
+├── clear-gcm-credentials.sh   # Safe credential cleanup utility
+└── validate-config.sh         # Configuration validation tool
 ```
 
-**Note**: This project was simplified - removed separate scripts for SSH key generation and manual profile switching as their functionality is integrated into the main setup wizard.
+**Note**: This project includes comprehensive automation for both Git profile management and Git Credential Manager setup, providing secure credential storage alongside multi-profile configuration.
 
 ## Script Details
 
@@ -40,7 +43,7 @@ scripts/
 2. **Set up personal profile** - Create/update personal profile  
 3. **Set up client profile** - Create/update client profile
 4. **Clean unused entries** - Remove obsolete .gitconfig entries
-5. **Test current configuration** - Validate profile switching
+5. **Profile switching validation** - Test configuration switching
 6. **Exit** - Complete setup
 
 **Workflow:**
@@ -48,6 +51,122 @@ scripts/
 2. Backup existing `.gitconfig`
 3. Configure/verify global Git settings
 4. Present interactive menu
+5. Handle profile creation/updating
+6. Generate SSH keys (optional)
+7. Set up conditional includes
+8. Validate configuration
+
+---
+
+### 2. `setup-gcm-wsl.sh` - Git Credential Manager Setup
+
+**Purpose:** Automated installation and configuration of Git Credential Manager for WSL environments.
+
+**Features:**
+- Git Credential Manager download and installation
+- WSL-optimized configuration
+- Multi-provider support (GitHub, GitLab, Bitbucket)
+- Profile integration
+- Credential store setup
+- Authentication testing
+
+**Usage:**
+```bash
+./scripts/setup-gcm-wsl.sh              # Full installation and setup
+./scripts/setup-gcm-wsl.sh --dry-run    # Preview changes without execution
+./scripts/setup-gcm-wsl.sh -h           # Show help
+```
+
+**Installation Process:**
+1. **Prerequisites check** - Verify WSL environment and dependencies
+2. **Download GCM** - Fetch latest Git Credential Manager release
+3. **Installation** - Install .deb package with dependency resolution
+4. **Configuration** - Set up WSL-specific settings and credential store
+5. **Profile integration** - Add GCM configuration to existing Git profiles
+6. **Testing** - Verify credential functionality with test repositories
+
+**Configuration Applied:**
+- Browser-based authentication for GitHub/GitLab
+- Cache credential store for WSL
+- Per-provider credential helpers
+- GUI prompt disabled for WSL compatibility
+
+---
+
+### 3. `check-gcm-status.sh` - GCM Status Checker
+
+**Purpose:** Comprehensive Git Credential Manager status monitoring and diagnostics.
+
+**Features:**
+- GCM version and configuration display
+- Active credential helpers listing
+- Authentication status testing
+- Provider-specific connectivity checks
+- Real-time credential validation
+
+**Usage:**
+```bash
+./scripts/check-gcm-status.sh           # Full status report
+```
+
+**Status Categories:**
+1. **Version Information** - GCM version and credential store type
+2. **Authentication Methods** - GitHub/GitLab auth modes
+3. **Credential Helpers** - Active helpers with source files
+4. **Connectivity Tests** - Real-time authentication validation
+5. **Provider Status** - GitHub/GitLab/Bitbucket connection status
+
+**Output Example:**
+```
+🔐 === GIT CREDENTIAL MANAGER STATUS ===
+
+📋 Version & Diagnostics:
+  GCM Version: 2.6.1
+  Store Type: cache
+
+🌐 Authentication Methods:
+  GitHub: browser
+  GitLab: browser
+
+✅ GitHub authentication working
+```
+
+---
+
+### 4. `clear-gcm-credentials.sh` - Credential Cleanup Utility
+
+**Purpose:** Safe and controlled removal of stored Git credentials.
+
+**Features:**
+- Provider-specific credential clearing
+- Bulk credential removal
+- Safe erase operations (non-hanging)
+- Backup and restore capabilities
+- Selective credential management
+
+**Usage:**
+```bash
+./scripts/clear-gcm-credentials.sh              # Clear all credentials
+./scripts/clear-gcm-credentials.sh github       # Clear only GitHub credentials
+./scripts/clear-gcm-credentials.sh gitlab       # Clear only GitLab credentials
+./scripts/clear-gcm-credentials.sh bitbucket    # Clear only Bitbucket credentials
+```
+
+**Supported Providers:**
+- **GitHub** - github.com and gist.github.com
+- **GitLab** - gitlab.com
+- **Bitbucket** - bitbucket.org
+- **All** - Complete credential cleanup
+
+**Safety Features:**
+- Non-interactive erase operations (prevents terminal hanging)
+- Error suppression for missing credentials
+- Provider isolation
+- Confirmation prompts for bulk operations
+
+---
+
+### 5. `validate-config.sh` - Configuration Validation
 5. Process user selections
 6. Create profiles and SSH keys as needed
 7. Update `.gitconfig` with conditional includes
@@ -297,3 +416,66 @@ To support additional key types:
 4. Test key generation and validation
 
 This documentation should be updated when scripts are modified or new features are added.
+
+---
+
+## Git Credential Manager Scripts
+
+### Additional GCM-Specific Scripts
+
+The following scripts provide Git Credential Manager functionality:
+
+#### `setup-gcm-wsl.sh` - GCM Automated Setup
+
+**Purpose:** Automated installation and configuration of Git Credential Manager for WSL environments.
+
+**Features:**
+- Download and install latest GCM
+- WSL-optimized configuration
+- Multi-provider credential setup
+- Profile integration
+- Credential store configuration
+
+**Usage:**
+```bash
+./scripts/setup-gcm-wsl.sh              # Full installation
+./scripts/setup-gcm-wsl.sh --dry-run    # Preview changes
+```
+
+#### `check-gcm-status.sh` - GCM Status Monitoring
+
+**Purpose:** Real-time Git Credential Manager status and diagnostics.
+
+**Features:**
+- Version and configuration display
+- Authentication status checking
+- Provider connectivity testing
+- Credential helper verification
+
+**Usage:**
+```bash
+./scripts/check-gcm-status.sh           # Full status report
+```
+
+#### `clear-gcm-credentials.sh` - Credential Management
+
+**Purpose:** Safe removal and management of stored Git credentials.
+
+**Features:**
+- Provider-specific credential clearing
+- Safe erase operations (non-hanging)
+- Selective credential management
+- Bulk credential removal
+
+**Usage:**
+```bash
+./scripts/clear-gcm-credentials.sh              # Clear all
+./scripts/clear-gcm-credentials.sh github       # Clear GitHub only
+./scripts/clear-gcm-credentials.sh gitlab       # Clear GitLab only
+```
+
+**Integration with Profile Scripts:**
+- GCM scripts complement the profile management system
+- `setup-gcm-wsl.sh` should be run before `setup-profiles.sh`
+- All GCM scripts work independently and can be run as needed
+- Credential management integrates with existing profile configurations

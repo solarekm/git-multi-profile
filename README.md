@@ -18,6 +18,14 @@ A comprehensive guide and automation suite for configuring Git with multiple pro
 - ✅ **Automated Setup** - Scripts for quick profile configuration
 - ✅ **Cross-Platform** - Works on Linux, macOS, and Windows (WSL/Git Bash)
 
+### Credential Management
+- 🔐 **Git Credential Manager** - Secure credential storage and management
+- 🌐 **Multi-Provider Support** - GitHub, GitLab, Bitbucket integration
+- 🔒 **Encrypted Storage** - Credentials stored securely in system keychain
+- 🚀 **WSL Optimization** - Automated setup for Windows Subsystem for Linux
+- 🧹 **Credential Cleanup** - Safe credential removal and management tools
+- 📊 **Status Monitoring** - Real-time credential and authentication status
+
 ### Configuration Types
 - 🏢 **Corporate Profiles** - Company email, SSH keys, and signing keys
 - 🏠 **Personal Profiles** - Personal GitHub/GitLab configurations
@@ -32,14 +40,19 @@ A comprehensive guide and automation suite for configuring Git with multiple pro
   - `work-template` - Work profile configuration template
   - `personal-template` - Personal profile configuration template
   - `client-template` - Client profile configuration template
-- `scripts/` - Automation scripts for profile management
+- `scripts/` - Automation scripts for profile and credential management
   - `setup-profiles.sh` - Interactive profile setup wizard (includes SSH key generation)
+  - `setup-gcm-wsl.sh` - Git Credential Manager automated setup for WSL
+  - `check-gcm-status.sh` - GCM status checker and diagnostics tool
+  - `clear-gcm-credentials.sh` - Safe credential cleanup utility
   - `validate-config.sh` - Configuration validation tool
 - `docs/` - Comprehensive documentation and guides
   - `scripts.md` - Complete scripts documentation
   - `templates.md` - Templates guide and reference
   - `ssh-setup.md` - SSH key setup and management guide
   - `gpg-setup.md` - GPG signing configuration guide
+  - `git-credential-manager-wsl.md` - Complete GCM setup guide for WSL
+  - `gcm-quick-start.md` - Quick start guide for Git Credential Manager
   - `troubleshooting.md` - Common issues and solutions
 - `examples/` - Real-world configuration examples
   - `corporate-setup/` - Enterprise environment examples
@@ -51,6 +64,7 @@ A comprehensive guide and automation suite for configuring Git with multiple pro
 - Bash or Zsh shell
 - SSH client
 - Text editor (nano, vim, or VS Code)
+- **Optional**: Git Credential Manager for enhanced security
 
 ### Step 1: Repository Setup
 
@@ -67,7 +81,19 @@ A comprehensive guide and automation suite for configuring Git with multiple pro
 
 ### Step 2: Profile Configuration
 
+#### Option A: Standard Profile Setup
 1. **Run the interactive setup:**
+   ```bash
+   ./scripts/setup-profiles.sh
+   ```
+
+#### Option B: Enhanced Setup with Git Credential Manager (WSL)
+1. **Install and configure GCM (recommended for WSL users):**
+   ```bash
+   ./scripts/setup-gcm-wsl.sh
+   ```
+   
+2. **Then run profile setup:**
    ```bash
    ./scripts/setup-profiles.sh
    ```
@@ -100,6 +126,11 @@ A comprehensive guide and automation suite for configuring Git with multiple pro
    git config user.email  # Should show personal email
    ```
 
+4. **Check credential status (if using GCM):**
+   ```bash
+   ./scripts/check-gcm-status.sh
+   ```
+
 ## � Documentation
 
 ### Comprehensive Guides
@@ -107,13 +138,16 @@ A comprehensive guide and automation suite for configuring Git with multiple pro
 - **[Templates Guide](docs/templates.md)** - Understanding and customizing configuration templates
 - **[SSH Setup Guide](docs/ssh-setup.md)** - SSH key management and configuration
 - **[GPG Setup Guide](docs/gpg-setup.md)** - GPG signing configuration
+- **[Git Credential Manager WSL](docs/git-credential-manager-wsl.md)** - Complete GCM setup for WSL
+- **[GCM Quick Start](docs/gcm-quick-start.md)** - Quick start guide for Git Credential Manager
+- **[GCM Management](docs/gcm-management.md)** - Advanced GCM management and troubleshooting
 - **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
 
 ### Quick References
-- **Scripts:** Interactive setup, validation, manual switching, SSH key generation
+- **Scripts:** Interactive setup, GCM automation, credential management, validation, SSH key generation
 - **Templates:** Global, work, personal, and client configuration templates
-- **Security:** SSH key isolation, GPG signing per profile
-- **Automation:** Backup creation, duplicate prevention, validation checks
+- **Security:** SSH key isolation, GPG signing per profile, encrypted credential storage
+- **Automation:** Backup creation, duplicate prevention, validation checks, credential cleanup
 
 ## �🛠️ Configuration Profiles
 
@@ -187,6 +221,7 @@ A comprehensive guide and automation suite for configuring Git with multiple pro
 git-multi-profile/
 ├── README.md                    # This file
 ├── LICENSE                     # MIT License
+├── .gitignore                  # Git ignore patterns
 ├── .github/
 │   └── workflows/
 │       └── quality.yml         # CI/CD pipeline for automated testing
@@ -197,13 +232,19 @@ git-multi-profile/
 │       ├── personal-template   # Personal profile template
 │       └── client-template     # Client profile template
 ├── scripts/                    # Automation and management scripts
-│   ├── setup-profiles.sh       # Interactive profile setup wizard (includes SSH key generation)
+│   ├── setup-profiles.sh       # Interactive profile setup wizard
+│   ├── setup-gcm-wsl.sh        # Git Credential Manager automated setup for WSL
+│   ├── check-gcm-status.sh     # GCM status checker and diagnostics tool
+│   ├── clear-gcm-credentials.sh # Safe credential cleanup utility
 │   └── validate-config.sh      # Configuration validation tool
 ├── docs/                       # Comprehensive documentation
 │   ├── scripts.md             # Scripts documentation
 │   ├── templates.md           # Templates guide
 │   ├── ssh-setup.md           # SSH setup guide
 │   ├── gpg-setup.md           # GPG setup guide
+│   ├── git-credential-manager-wsl.md # Complete GCM setup guide for WSL
+│   ├── gcm-quick-start.md     # Quick start guide for Git Credential Manager
+│   ├── gcm-management.md      # Advanced GCM management and troubleshooting
 │   └── troubleshooting.md     # Common issues and solutions
 └── examples/                   # Real-world examples
     ├── corporate-setup/

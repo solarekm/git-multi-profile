@@ -406,6 +406,29 @@ ssh-add ~/.ssh/id_rsa_personal
 
 ## Getting Help
 
+### Git Credential Manager Issues
+
+For GCM-specific troubleshooting, see the dedicated [GCM Management Guide](gcm-management.md).
+
+**Quick GCM diagnostics:**
+```bash
+# Check GCM status
+./scripts/check-gcm-status.sh
+
+# Clear problematic credentials
+./scripts/clear-gcm-credentials.sh
+
+# Verify GCM installation
+git-credential-manager --version
+git-credential-manager diagnose
+```
+
+**Common GCM issues:**
+- **"No credential store has been selected"** → Run `git config --global credential.credentialStore cache`
+- **Browser authentication not working in WSL** → Check `$DISPLAY` variable or use device flow
+- **Hanging erase command** → Use `./scripts/clear-gcm-credentials.sh` instead
+- **Multiple account conflicts** → Clear credentials and use directory-based profile switching
+
 ### Log Issues with Details
 When reporting issues, include:
 
@@ -435,4 +458,7 @@ ls -la ~/.ssh/ >> debug-report.txt
 
 - [SSH Setup Guide](ssh-setup.md)
 - [GPG Setup Guide](gpg-setup.md)
+- [GCM Management Guide](gcm-management.md)
+- [GCM Quick Start](gcm-quick-start.md)
+- [Git Credential Manager WSL Setup](git-credential-manager-wsl.md)
 - [Main README](../README.md)
