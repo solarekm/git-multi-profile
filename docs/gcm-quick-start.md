@@ -1,50 +1,50 @@
-# 🔐 Git Credential Manager dla WSL - Quick Start
+# 🔐 Git Credential Manager for WSL - Quick Start
 
-> **Szybkie rozpoczęcie pracy z Git Credential Manager w WSL**
+> **Quick start guide for Git Credential Manager in WSL**
 
-## 🚀 Opcja 1: Automatyczna instalacja (ZALECANE)
+## 🚀 Option 1: Automated installation (RECOMMENDED)
 
 ```bash
-# Przejdź do katalogu git-multi-profile
+# Go to git-multi-profile directory
 cd git-multi-profile
 
-# Podgląd zmian (bez wykonywania)
+# Preview changes (without execution)
 ./scripts/setup-gcm-wsl.sh --dry-run
 
-# Automatyczna instalacja i konfiguracja
+# Automated installation and configuration
 ./scripts/setup-gcm-wsl.sh
 ```
 
-**Co zrobi skrypt:**
-- ✅ Pobierze i zainstaluje najnowszy Git Credential Manager
-- ✅ Skonfiguruje ustawienia WSL dla GCM  
-- ✅ Doda konfigurację GCM do wszystkich profili Git
-- ✅ Przeprowadzi testy konfiguracji
+**What the script does:**
+- ✅ Downloads and installs the latest Git Credential Manager
+- ✅ Configures WSL settings for GCM  
+- ✅ Adds GCM configuration to all Git profiles
+- ✅ Performs configuration tests
 
 ---
 
-## ⚙️ Opcja 2: Manualna konfiguracja
+## ⚙️ Option 2: Manual configuration
 
-### Krok 1: Instalacja GCM
+### Step 1: Install GCM
 ```bash
-# Pobierz najnowszą wersję
+# Download latest version
 wget https://github.com/GitCredentialManager/git-credential-manager/releases/latest/download/gcm-linux_amd64.2.6.1.deb
 
-# Zainstaluj
+# Install
 sudo dpkg -i gcm-linux_amd64.2.6.1.deb
 ```
 
-### Krok 2: Konfiguracja WSL
+### Step 2: Configure WSL
 ```bash
-# Ustawienia globalne dla WSL
+# Global settings for WSL
 git config --global credential.guiPrompt false
 git config --global credential.gitHubAuthModes browser
 git config --global credential.gitLabAuthModes browser
 ```
 
-### Krok 3: Dodaj do profili Git
+### Step 3: Add to Git profiles
 
-Do każdego pliku `~/.config/git/profiles/nazwa-profilu` dodaj:
+Add to each `~/.config/git/profiles/profile-name` file:
 
 ```ini
 # 🔐 Git Credential Manager Configuration  
@@ -66,36 +66,36 @@ Do każdego pliku `~/.config/git/profiles/nazwa-profilu` dodaj:
 
 ---
 
-## 🧪 Test konfiguracji
+## 🧪 Test configuration
 
 ```bash
-# Przejdź do katalogu z profilem (np. personal)
-cd ~/repositories/personal/jakis-projekt
+# Go to directory with profile (e.g. personal)
+cd ~/repositories/personal/some-project
 
-# Test z prywatnym repo
-git clone https://github.com/twoja-nazwa/private-repo.git
+# Test with private repo
+git clone https://github.com/your-name/private-repo.git
 
-# GCM powinien:
-# 1. Otworzyć przeglądarkę
-# 2. Poprosić o OAuth login  
-# 3. Zapisać token automatycznie
+# GCM should:
+# 1. Open browser
+# 2. Request OAuth login  
+# 3. Save token automatically
 ```
 
 ---
 
-## 🔧 Przydatne komendy
+## 🔧 Useful commands
 
 ```bash
-# Sprawdź status autoryzacji
+# Check authorization status
 git-credential-manager status
 
-# Wyloguj ze wszystkich serwisów  
+# Logout from all services  
 git-credential-manager logout
 
-# Usuń zapisane tokeny
+# Remove saved tokens
 git-credential-manager erase
 
-# Sprawdź wersję
+# Check version
 git-credential-manager --version
 
 # Test działania w aktualnym katalogu
@@ -108,55 +108,54 @@ git ls-remote
 
 ### Problem: Przeglądarka nie otwiera się
 
-```bash
-# Ustaw przeglądarkę dla WSL
+# Set browser for WSL
 export BROWSER="/mnt/c/Program Files/Google/Chrome/Application/chrome.exe"
 
-# Dodaj do ~/.bashrc dla stałości
+# Add to ~/.bashrc for persistence
 echo 'export BROWSER="/mnt/c/Program Files/Google/Chrome/Application/chrome.exe"' >> ~/.bashrc
 ```
 
-### Problem: "Permission denied" mimo autoryzacji
+### Problem: "Permission denied" despite authorization
 
 ```bash
-# Wymuś nową autoryzację
+# Force new authorization
 git-credential-manager erase
 git clone https://github.com/user/repo.git
 ```
 
-### Problem: GCM nie został znaleziony
+### Problem: GCM not found
 
 ```bash
-# Sprawdź instalację
+# Check installation
 which git-credential-manager
 
-# Zaktualizuj ścieżkę w profilach jeśli różni się od /usr/local/bin/git-credential-manager
+# Update path in profiles if different from /usr/local/bin/git-credential-manager
 ```
 
 ---
 
-## 📁 Struktura plików po instalacji
+## 📁 File structure after installation
 
 ```
 ~/.config/git/profiles/
-├── personal              # ← GCM dodany
-├── work                 # ← GCM dodany  
-└── client               # ← GCM dodany
+├── personal              # ← GCM added
+├── work                 # ← GCM added  
+└── client               # ← GCM added
 
-~/.gcm/                  # ← Przechowywanie tokenów GCM
+~/.gcm/                  # ← GCM token storage
 ```
 
 ---
 
-## 💡 Wskazówki pro
+## 💡 Pro tips
 
-1. **Różne profile = różne tokeny**: GCM automatycznie zarządza tokenami per profil
-2. **OAuth > Personal Access Tokens**: Używaj OAuth flow gdy możliwe  
-3. **2FA support**: GCM obsługuje two-factor authentication
-4. **Enterprise**: Działa z GitHub Enterprise, GitLab Enterprise, Azure DevOps
+1. **Different profiles = different tokens**: GCM automatically manages tokens per profile
+2. **OAuth > Personal Access Tokens**: Use OAuth flow when possible  
+3. **2FA support**: GCM supports two-factor authentication
+4. **Enterprise**: Works with GitHub Enterprise, GitLab Enterprise, Azure DevOps
 
 ---
 
-**🚀 Gotowe!** Teraz masz profesjonalne zarządzanie tokenami Git w WSL bez instalacji czegokolwiek na Windows!
+**🚀 Done!** Now you have professional Git token management in WSL without installing anything on Windows!
 
-*Dokumentacja: [git-credential-manager-wsl.md](git-credential-manager-wsl.md)*
+*Documentation: [git-credential-manager-wsl.md](git-credential-manager-wsl.md)*
