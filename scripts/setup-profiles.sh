@@ -488,23 +488,23 @@ clean_unused_entries() {
 # Clean backup profile files
 clean_backup_profiles() {
     print_step "Cleaning backup profile files..."
-    
+
     local PROFILES_DIR="$HOME/.config/git/profiles"
     local backup_files
-    
+
     # Find backup files (using mapfile for better ShellCheck compliance)
     mapfile -t backup_files < <(find "$PROFILES_DIR" -name "*.backup.*" -type f 2>/dev/null || true)
-    
+
     if [[ ${#backup_files[@]} -eq 0 ]]; then
         print_success "No backup profile files found"
         return 0
     fi
-    
+
     print_info "Found ${#backup_files[@]} backup profile files:"
     for file in "${backup_files[@]}"; do
         echo "  - $(basename "$file")"
     done
-    
+
     echo ""
     read -p "Do you want to remove these backup files? (y/N): " -r
     if [[ $REPLY =~ ^[Yy]$ ]]; then

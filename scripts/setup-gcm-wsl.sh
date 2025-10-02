@@ -87,7 +87,7 @@ check_wsl() {
 # Get latest GCM version from GitHub
 get_latest_gcm_version() {
     print_info "Checking latest Git Credential Manager version..."
-    
+
     if command -v curl >/dev/null 2>&1; then
         GCM_VERSION=$(curl -sL https://api.github.com/repos/GitCredentialManager/git-credential-manager/releases/latest | grep '"tag_name"' | sed 's/.*"tag_name": "v\?\([^"]*\)".*/\1/')
     elif command -v wget >/dev/null 2>&1; then
@@ -191,7 +191,7 @@ configure_gcm_global() {
 
     local settings=(
         "credential.guiPrompt false"
-        "credential.gitHubAuthModes browser" 
+        "credential.gitHubAuthModes browser"
         "credential.gitLabAuthModes browser"
         "credential.autoDetectTimeout 0"
         "credential.credentialStore cache"
@@ -270,16 +270,16 @@ add_gcm_to_profile() {
     if grep -q "\[credential" "$profile_file"; then
         print_info "Removing existing credential configuration..."
         # Create temp file without credential sections
-        awk '/^\[credential/{skip=1} /^\[/ && !/^\[credential/{skip=0} !skip' "$profile_file" > "${profile_file}.tmp"
+        awk '/^\[credential/{skip=1} /^\[/ && !/^\[credential/{skip=0} !skip' "$profile_file" >"${profile_file}.tmp"
         mv "${profile_file}.tmp" "$profile_file"
     fi
 
     # Add GCM configuration
-    echo "$gcm_config" >> "$profile_file"
+    echo "$gcm_config" >>"$profile_file"
     print_success "Added GCM configuration to $profile_name"
 }
 
-# Configure profiles  
+# Configure profiles
 configure_profiles() {
     print_step "Configuring Git profiles with GCM..."
 
@@ -290,7 +290,7 @@ configure_profiles() {
     fi
 
     local profiles
-    read -ra profiles <<< "$(get_profiles)"
+    read -ra profiles <<<"$(get_profiles)"
 
     if [[ ${#profiles[@]} -eq 0 ]]; then
         print_warning "No Git profiles found in $PROFILES_DIR"
@@ -325,7 +325,7 @@ test_gcm() {
 
     # Test profile configuration
     local profiles
-    read -ra profiles <<< "$(get_profiles)"
+    read -ra profiles <<<"$(get_profiles)"
 
     for profile in "${profiles[@]}"; do
         local profile_file="$PROFILES_DIR/$profile"
@@ -342,36 +342,36 @@ test_gcm() {
 # Show summary
 show_summary() {
     print_step "Configuration Summary"
-    
+
     echo -e "${WHITE}Git Credential Manager:${NC}"
     echo -e "  Path: ${CYAN}$GCM_PATH${NC}"
     echo -e "  Version: ${CYAN}$(git-credential-manager --version 2>/dev/null | head -1 || echo 'Not available')${NC}"
-    
+
     echo -e "\n${WHITE}Configured Profiles:${NC}"
     local profiles
-    read -ra profiles <<< "$(get_profiles)"
+    read -ra profiles <<<"$(get_profiles)"
     for profile in "${profiles[@]}"; do
         echo -e "  ${GREEN}${CHECK}${NC} $profile"
     done
-    
+
     echo -e "\n${WHITE}Global Git Configuration:${NC}"
     local git_configs=(
         "credential.guiPrompt"
-        "credential.gitHubAuthModes" 
+        "credential.gitHubAuthModes"
         "credential.gitLabAuthModes"
         "credential.credentialStore"
     )
-    
+
     for config in "${git_configs[@]}"; do
         local value
         value=$(git config --global --get "$config" 2>/dev/null || echo "not set")
         echo -e "  $config: ${CYAN}$value${NC}"
     done
-    
+
     echo -e "\n${GREEN}${CHECK} Setup completed successfully!${NC}"
     echo -e "\n${WHITE}Next steps:${NC}"
     echo -e "1. ${YELLOW}Test authentication:${NC} git clone https://github.com/user/private-repo"
-    echo -e "2. ${YELLOW}Browser will open${NC} for OAuth authentication"  
+    echo -e "2. ${YELLOW}Browser will open${NC} for OAuth authentication"
     echo -e "3. ${YELLOW}Tokens are stored${NC} securely by GCM"
     echo -e "\n${WHITE}Useful commands:${NC}"
     echo -e "  ${CYAN}git-credential-manager diagnose${NC}   # Check configuration"
@@ -384,25 +384,25 @@ show_summary() {
 # Main function
 main() {
     print_header
-    
+
     # Check environment
     check_wsl
-    
+
     # Get GCM version
     get_latest_gcm_version
-    
+
     # Install GCM
     install_gcm
-    
+
     # Configure GCM
     configure_gcm_global
-    
+
     # Configure profiles
     configure_profiles
-    
+
     # Test configuration
     test_gcm
-    
+
     # Show summary
     show_summary
 }
@@ -410,19 +410,19 @@ main() {
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        -h|--help)
+        -h | --help)
             show_help
             exit 0
             ;;
-        -d|--dry-run)
+        -d | --dry-run)
             DRY_RUN=true
             shift
             ;;
-        -s|--skip-install)
+        -s | --skip-install)
             SKIP_INSTALL=true
             shift
             ;;
-        -v|--version)
+        -v | --version)
             GCM_VERSION="$2"
             shift 2
             ;;
