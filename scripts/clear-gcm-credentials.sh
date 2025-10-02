@@ -3,9 +3,9 @@
 
 clear_gcm_credentials() {
     local service="${1:-all}"
-    
+
     echo "🧹 Clearing GCM credentials..."
-    
+
     case "$service" in
         "github")
             echo "  🔹 Clearing GitHub credentials..."
@@ -20,13 +20,13 @@ clear_gcm_credentials() {
             echo "  🔹 Clearing Bitbucket credentials..."
             echo -e "protocol=https\nhost=bitbucket.org" | git-credential-manager erase
             ;;
-        "all"|*)
+        "all" | *)
             echo "  🔹 Clearing all credentials..."
             echo -e "protocol=https\nhost=github.com" | git-credential-manager erase 2>/dev/null || true
             echo -e "protocol=https\nhost=gist.github.com" | git-credential-manager erase 2>/dev/null || true
             echo -e "protocol=https\nhost=gitlab.com" | git-credential-manager erase 2>/dev/null || true
             echo -e "protocol=https\nhost=bitbucket.org" | git-credential-manager erase 2>/dev/null || true
-            
+
             # Clear any GitHub accounts through provider
             if command -v git-credential-manager >/dev/null 2>&1; then
                 git-credential-manager github list 2>/dev/null | while read -r account; do
@@ -38,7 +38,7 @@ clear_gcm_credentials() {
             fi
             ;;
     esac
-    
+
     echo "✅ Credential cleanup completed"
 }
 
@@ -48,7 +48,7 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
     echo ""
     echo "Services:"
     echo "  github     - Clear only GitHub credentials"
-    echo "  gitlab     - Clear only GitLab credentials" 
+    echo "  gitlab     - Clear only GitLab credentials"
     echo "  bitbucket  - Clear only Bitbucket credentials"
     echo "  all        - Clear all credentials (default)"
     echo ""
